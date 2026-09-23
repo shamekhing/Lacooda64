@@ -66,6 +66,7 @@ inline constexpr AttributeId kSelf = 0;
 
 // Builds an Address-tagged operand from a level and optional player/zone/slot/
 // card/attribute components. Unspecified components default to 0.
+// Fields are masked to their widths; oversized input values are truncated.
 [[nodiscard]] constexpr Address MakeAddress(
     AddressLevel level, PlayerId player = 0, ZoneId zone = 0, SlotId slot = 0,
     CardInstanceId card = 0, AttributeId attribute = kSelf) noexcept {

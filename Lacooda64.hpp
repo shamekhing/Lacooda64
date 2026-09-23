@@ -4,8 +4,8 @@
 // Umbrella header for the factored Lacooda ISA.
 //
 // The former monolithic 64-bit VM header has been split into the lacooda/
-// modules below, included here in dependency (layer) order so each lower
-// layer never depends on a higher one.
+// modules below. Each module includes its own dependencies, so it can also
+// be included independently.
 //
 // Everything in the executable duel layer is represented as std::uint64_t:
 //

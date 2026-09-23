@@ -12,6 +12,17 @@ namespace openjoey::lacooda64 {
 
 // -----------------------------------------------------------------------------
 // Fixed instruction = exactly four 64-bit words = 32 bytes
+//
+//   word index     0           1           2           3
+//   +------------+-----------+-----------+-----------+
+//   | operation  |    dst    |   src0    |   src1    |
+//   +------------+-----------+-----------+-----------+
+//        64           64          64          64      bits
+//
+// Serialized byte offsets: 0..7, 8..15, 16..23, 24..31.
+// EncodeBytes writes each word least-significant byte first.
+// Unused operands default to kNone. Jump targets are instruction indices,
+// not word indices or byte offsets.
 // -----------------------------------------------------------------------------
 
 // A fixed instruction is exactly four 64-bit Words: [op, dst, src0, src1].

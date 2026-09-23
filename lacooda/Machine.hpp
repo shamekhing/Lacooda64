@@ -27,8 +27,8 @@ struct Registers {
   std::array<Word, 256> flag{};     // Immediate 0/1 words
 };
 
-// Snapshot of all mutable machine state: the control register file and the
-// three general register files.
+// Snapshot of the VM control and general register files. The host owns duel
+// objects, rules, and any other execution state outside this structure.
 struct MachineState {
   ControlState control{};
   Registers regs{};
@@ -76,7 +76,10 @@ struct DecodeResult {
   }
 };
 
-// Decodes a flat Word stream into a Trace, validating each 4-Word instruction.
+// Decodes a flat Word stream, validating each instruction but not jump bounds.
+// Call ValidateTrace on success to check targets. On instruction failure, trace_
+// contains the valid prefix. This noexcept function allocates; allocation failure
+// terminates rather than propagating an exception.
 [[nodiscard]] inline DecodeResult Decode(const ProgramWords& words) noexcept {
   DecodeResult out{};
   if ((words.size() % 4) != 0) {

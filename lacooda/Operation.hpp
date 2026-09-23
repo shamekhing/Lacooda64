@@ -13,16 +13,20 @@ namespace openjoey::lacooda64 {
 // -----------------------------------------------------------------------------
 // Operation word
 //
-// Full word:
-//   63..60 tag = Operation
+// Payload bits (56 used, 4 reserved):
 //
-// Payload:
-//   59..52 opcode   (8)
-//   51..40 subcode  (12)
-//   39..28 flags    (12)
-//   27..20 cause    (8)
-//   19.. 4 aux      (16)
-//    3.. 0 reserved (4)
+//   payload bit
+//   59..52 51..40 39..28 27..20 19..4  3..0
+//   +------+------+------+-----+------+------+
+//   |opcode| sub  |flags |cause| aux  | rsvd |
+//   +------+------+------+-----+------+------+
+//       8     12     12     8     16      4
+//
+// Full 64-bit word:
+//   63..60 = WordTag::kOperation
+//
+// Summon subcode: bits 11..8 = mode, bits 7..0 = method.
+// Op masks each field to its width and emits zero reserved bits.
 //
 // `aux` is compact opcode-specific metadata.
 // Larger values belong in normal operand words.

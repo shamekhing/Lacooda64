@@ -33,6 +33,18 @@ inline constexpr Word kTagShift = kPayloadBits;
 
 // -----------------------------------------------------------------------------
 // Tagged 64-bit words
+//
+// Full 64-bit word (4 tag bits, 60 payload bits):
+//
+//   word bit
+//   63..60 59..0
+//   +------+------------------------------------------------------------+
+//   | tag  | payload                                                    |
+//   +------+------------------------------------------------------------+
+//       4                              60
+//
+// The tag selects the payload layout. kNone is the all-zero word;
+// operation words occupy instruction slot 0, operands occupy slots 1..3.
 // -----------------------------------------------------------------------------
 
 // Tag stored in the top 4 bits of every Word (see kTagShift). It lets a single

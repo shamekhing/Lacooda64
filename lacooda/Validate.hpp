@@ -42,8 +42,9 @@ namespace openjoey::lacooda64 {
   }
 }
 
-// Returns true when instruction `i` has a well-formed operation word and its
-// operands satisfy the per-opcode arity and writability rules.
+// Checks the operation tag, supported opcode, operands, and the rules below.
+// This is structural validation, not execution or complete semantic validation:
+// most subcodes, metadata, reserved bits, and unused slots are not constrained.
 [[nodiscard]] constexpr bool ValidInstruction(const Instruction& i) noexcept {
   if (!IsTag(Operation(i), WordTag::kOperation)) return false;
   if (!ValidOperand(Dst(i)) || !ValidOperand(Src0(i)) || !ValidOperand(Src1(i)))

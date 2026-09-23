@@ -14,7 +14,7 @@ namespace openjoey::lacooda64 {
 // Operand classification
 // -----------------------------------------------------------------------------
 
-// True when `o` is the "no operand" sentinel (a zero WordTag::kNone word).
+// Tests only the None tag; ValidOperand additionally requires an all-zero word.
 [[nodiscard]] constexpr bool IsNone(Operand o) noexcept {
   return TagOf(o) == WordTag::kNone;
 }

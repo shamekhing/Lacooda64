@@ -61,7 +61,8 @@ namespace openjoey::lacooda64 {
   return MakeInstruction(Op(Opcode::kCount), value_reg, container);
 }
 
-// Move: relocate cards from `source` into `destination` (src1 carries count).
+// Move: relocate cards from `source` into `destination`; src1 is kNone.
+// For an explicit count in src1, use MakeInstruction (see example::kDrawTwo).
 [[nodiscard]] constexpr Instruction Move(
     Address destination, Address source, MoveMethod method,
     CauseKind cause = CauseKind::kUnspecified,
@@ -189,8 +190,8 @@ namespace openjoey::lacooda64 {
                          amount);
 }
 
-// RecordedRandom: replay form — dst already holds the resolved result; src1
-// optionally holds the domain size/context.
+// RecordedRandom: replay form — src0 carries the resolved result to write
+// into dst; src1 optionally holds the domain size/context.
 [[nodiscard]] constexpr Instruction RecordedRandom(
     Operand destination_reg, RandomKind kind, Operand resolved_result,
     Operand domain = kNone) noexcept {

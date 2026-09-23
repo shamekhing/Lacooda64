@@ -11,6 +11,22 @@ namespace openjoey::lacooda64 {
 
 // -----------------------------------------------------------------------------
 // Control-register word
+//
+// Payload bits (60-bit selector; current valid values are 0..5):
+//
+//   payload bit
+//   59..0
+//   +------------------------------------------------------------+
+//   | ControlReg selector                                        |
+//   +------------------------------------------------------------+
+//                               60
+//
+// Full 64-bit word:
+//   63..60 = WordTag::kControl
+//
+// 0 Turn, 1 Phase, 2 Step, 3 Chain, 4 Effect, 5 ProgramCounter.
+// The payload selects a ControlState cell; it does not hold its value.
+// kCount is a size sentinel, not a usable selector.
 // -----------------------------------------------------------------------------
 
 // Control registers index the engine's global state. The numeric value doubles

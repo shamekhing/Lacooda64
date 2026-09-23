@@ -9,8 +9,20 @@ namespace openjoey::lacooda64 {
 // -----------------------------------------------------------------------------
 // Immediate word
 //
-// Signed 60-bit two's-complement payload.
-// Range: [-2^59, 2^59-1].
+// Payload bits (60 used, none reserved):
+//
+//   payload bit
+//   59     58..0
+//   +------+-----------------------------------------------------------+
+//   | sign | remaining two's-complement bits                            |
+//   +------+-----------------------------------------------------------+
+//       1                              59
+//
+// Full 64-bit word:
+//   63..60 = WordTag::kImmediate
+//
+// Range: [-2^59, 2^59-1]. Imm masks to 60 bits; ImmediateValue sign-extends
+// bit 59 back to a SignedWord. Out-of-range inputs are not rejected.
 // -----------------------------------------------------------------------------
 
 // An Immediate occupies the full 60-bit payload as a signed two's-complement

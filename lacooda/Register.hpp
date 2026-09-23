@@ -9,9 +9,21 @@ namespace openjoey::lacooda64 {
 // -----------------------------------------------------------------------------
 // Register word
 //
-// payload:
-//   bits 9..8 bank
-//   bits 7..0 index
+// Payload bits (10 used, 50 reserved):
+//
+//   payload bit
+//   59..10                          9..8   7..0
+//   +------------------------------+------+--------+
+//   | reserved                     | bank | index  |
+//   +------------------------------+------+--------+
+//                  50                  2       8
+//
+// Full 64-bit word:
+//   63..60 = WordTag::kRegister
+//
+// Banks: 0 = Value (V), 1 = Address (A), 2 = Flag (F).
+// Each bank has indices 0..255; bank 3 is invalid.
+// Reg masks the bank/index fields and emits zero reserved bits.
 // -----------------------------------------------------------------------------
 
 // Three register banks, each with 256 entries (8-bit index). They pack into a

@@ -20,7 +20,7 @@ enum class Opcode : Word {
   kStore,     // address/control dst = src0 (writes state, e.g. LP).
   kCopy,      // dst = src0 (same semantics as Set, distinct encoding).
   kSwap,      // Exchange the values of dst and src0.
-  kSelect,    // Pick an address from an address register into a slot.
+  kSelect,    // Select the literal src0 address into address register dst.
   kCount,     // Count cards matching src0 into value register dst.
   kMove,      // Move/reposition cards from src0 into dst (subcode=method).
   kSummon,    // Summon a card (subcode packs method + mode).
