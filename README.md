@@ -2,6 +2,9 @@
 
 **A 64-bit instruction format for card-game duels.**
 
+![image info](./Lacooda64.png)
+
+
 Lacooda64 gives OpenJoey2 a common representation for duel operations: moving a
 card, changing life points, comparing values, branching, and recording events.
 Addresses and operands fit into tagged 64-bit words. Every instruction occupies
