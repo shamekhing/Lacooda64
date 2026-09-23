@@ -26,22 +26,23 @@
 // Operand layout:
 //   63..60  tag
 //   59..0   payload
+//
 
 #include <type_traits>
 
-#include "lacooda/Word.hpp"
 #include "lacooda/Address.hpp"
-#include "lacooda/Register.hpp"
-#include "lacooda/Immediate.hpp"
-#include "lacooda/Control.hpp"
-#include "lacooda/Opcode.hpp"
-#include "lacooda/Operation.hpp"
-#include "lacooda/Instruction.hpp"
-#include "lacooda/Operand.hpp"
-#include "lacooda/Validate.hpp"
-#include "lacooda/Machine.hpp"
 #include "lacooda/Builder.hpp"
+#include "lacooda/Control.hpp"
 #include "lacooda/Example.hpp"
+#include "lacooda/Immediate.hpp"
+#include "lacooda/Instruction.hpp"
+#include "lacooda/Machine.hpp"
+#include "lacooda/Opcode.hpp"
+#include "lacooda/Operand.hpp"
+#include "lacooda/Operation.hpp"
+#include "lacooda/Register.hpp"
+#include "lacooda/Validate.hpp"
+#include "lacooda/Word.hpp"
 
 namespace openjoey::lacooda64 {
 
@@ -54,4 +55,4 @@ static_assert(sizeof(Instruction) == 32, "Instruction must be exactly 4 words");
 static_assert(std::is_trivially_copyable<Instruction>::value,
               "Instruction must remain trivially copyable");
 
-} // namespace openjoey::lacooda64
+}  // namespace openjoey::lacooda64

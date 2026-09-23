@@ -5,8 +5,8 @@
 #include <array>
 #include <cstddef>
 
-#include "Word.hpp"
 #include "Operation.hpp"
+#include "Word.hpp"
 
 namespace openjoey::lacooda64 {
 
@@ -19,40 +19,37 @@ namespace openjoey::lacooda64 {
 // itself trivially copyable and laid out contiguously as 32 bytes.
 using Instruction = std::array<Word, 4>;
 
-// Logical slot index of each Word within an Instruction (see makeInstruction).
+// Logical slot index of each Word within an Instruction (see MakeInstruction).
 enum InstructionField : std::size_t {
-    I_Op   = 0, // [0] operation word: opcode + subcode + flags + cause + aux.
-    I_Dst  = 1, // [1] destination operand.
-    I_Src0 = 2, // [2] source operand 0.
-    I_Src1 = 3, // [3] source operand 1.
+  kIOp = 0,    // [0] operation word: opcode + subcode + flags + cause + aux.
+  kIDst = 1,   // [1] destination operand.
+  kISrc0 = 2,  // [2] source operand 0.
+  kISrc1 = 3,  // [3] source operand 1.
 };
 
 // Assembles a 4-Word instruction from its decoded slots. `dst`/`src0`/`src1`
-// default to None (WordTag::None) for opcodes that ignore them.
-[[nodiscard]] constexpr Instruction makeInstruction(
-    OperationWord op,
-    Operand dst = None,
-    Operand src0 = None,
-    Operand src1 = None
-) noexcept {
-    return {op, dst, src0, src1};
+// default to kNone (WordTag::kNone) for opcodes that ignore them.
+[[nodiscard]] constexpr Instruction MakeInstruction(
+    OperationWord op, Operand dst = kNone, Operand src0 = kNone,
+    Operand src1 = kNone) noexcept {
+  return {op, dst, src0, src1};
 }
 
 // [0] Returns the operation Word of instruction `i`.
-[[nodiscard]] constexpr OperationWord operation(const Instruction& i) noexcept {
-    return i[I_Op];
+[[nodiscard]] constexpr OperationWord Operation(const Instruction& i) noexcept {
+  return i[kIOp];
 }
 // [1] Returns the destination operand of instruction `i`.
-[[nodiscard]] constexpr Operand dst(const Instruction& i) noexcept {
-    return i[I_Dst];
+[[nodiscard]] constexpr Operand Dst(const Instruction& i) noexcept {
+  return i[kIDst];
 }
 // [2] Returns source operand 0 of instruction `i`.
-[[nodiscard]] constexpr Operand src0(const Instruction& i) noexcept {
-    return i[I_Src0];
+[[nodiscard]] constexpr Operand Src0(const Instruction& i) noexcept {
+  return i[kISrc0];
 }
 // [3] Returns source operand 1 of instruction `i`.
-[[nodiscard]] constexpr Operand src1(const Instruction& i) noexcept {
-    return i[I_Src1];
+[[nodiscard]] constexpr Operand Src1(const Instruction& i) noexcept {
+  return i[kISrc1];
 }
 
-} // namespace openjoey::lacooda64
+}  // namespace openjoey::lacooda64

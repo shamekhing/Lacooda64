@@ -2,14 +2,14 @@
 // OpenJoey2 - Lacooda / 64-bit word VM.
 // Worked examples matching the compact assembly language.
 
-#include "Word.hpp"
 #include "Address.hpp"
-#include "Register.hpp"
+#include "Builder.hpp"
 #include "Immediate.hpp"
+#include "Instruction.hpp"
 #include "Opcode.hpp"
 #include "Operation.hpp"
-#include "Instruction.hpp"
-#include "Builder.hpp"
+#include "Register.hpp"
+#include "Word.hpp"
 
 namespace openjoey::lacooda64 {
 
@@ -20,24 +20,20 @@ namespace openjoey::lacooda64 {
 namespace example {
 
 // Example addresses/attributes use intentionally arbitrary ruleset IDs.
-inline constexpr AttributeId ATTR_ATK = 1;
-inline constexpr AttributeId ATTR_LP  = 2;
-inline constexpr ZoneId ZONE_MONSTER  = 1;
-inline constexpr ZoneId ZONE_DECK     = 2;
-inline constexpr ZoneId ZONE_HAND     = 3;
+inline constexpr AttributeId kAttrAtk = 1;
+inline constexpr AttributeId kAttrLp = 2;
+inline constexpr ZoneId kZoneMonster = 1;
+inline constexpr ZoneId kZoneDeck = 2;
+inline constexpr ZoneId kZoneHand = 3;
 
 // Handy concrete addresses used by the worked example below.
-inline constexpr Address P0_LP =
-    Player(0, ATTR_LP);
+inline constexpr Address kP0Lp = Player(0, kAttrLp);
 
-inline constexpr Address P0_DECK =
-    Zone(0, ZONE_DECK, Self);
+inline constexpr Address kP0Deck = Zone(0, kZoneDeck, kSelf);
 
-inline constexpr Address P0_HAND =
-    Zone(0, ZONE_HAND, Self);
+inline constexpr Address kP0Hand = Zone(0, kZoneHand, kSelf);
 
-inline constexpr Address P0_MONSTERS =
-    Zone(0, ZONE_MONSTER, Self);
+inline constexpr Address kP0Monsters = Zone(0, kZoneMonster, kSelf);
 
 // Assembly:
 //
@@ -52,26 +48,20 @@ inline constexpr Address P0_MONSTERS =
 //
 // `MOVE DRAW ... #2` needs a count operand. The fixed 4-word machine expresses
 // that count through src1, while source/destination occupy dst/src0.
-inline constexpr Instruction CountMonsters =
-    Count(V(0), P0_MONSTERS);
+inline constexpr Instruction kCountMonsters = Count(V(0), kP0Monsters);
 
-inline constexpr Instruction CompareThree =
-    Compare(F(0), V(0), Imm(3), CompareOp::GreaterEqual);
+inline constexpr Instruction kCompareThree =
+    Compare(F(0), V(0), Imm(3), CompareOp::kGreaterEqual);
 
-inline constexpr Instruction JumpToEffect =
-    JumpIf(F(0), 4);
+inline constexpr Instruction kJumpToEffect = JumpIf(F(0), 4);
 
-inline constexpr Instruction Stop =
-    Halt();
+inline constexpr Instruction kStop = Halt();
 
-inline constexpr Instruction DrawTwo =
-    makeInstruction(
-        Op(Opcode::Move, sub(MoveMethod::Draw), Flag_None, CauseKind::CardEffect),
-        P0_HAND,
-        P0_DECK,
-        Imm(2)
-    );
+inline constexpr Instruction kDrawTwo =
+    MakeInstruction(Op(Opcode::kMove, Sub(MoveMethod::kDraw), kFlagNone,
+                       CauseKind::kCardEffect),
+                    kP0Hand, kP0Deck, Imm(2));
 
-} // namespace example
+}  // namespace example
 
-} // namespace openjoey::lacooda64
+}  // namespace openjoey::lacooda64

@@ -2,14 +2,14 @@
 // OpenJoey2 - Lacooda / 64-bit word VM.
 // High-level instruction builders (one per opcode family).
 
-#include "Word.hpp"
 #include "Address.hpp"
-#include "Register.hpp"
-#include "Immediate.hpp"
 #include "Control.hpp"
+#include "Immediate.hpp"
+#include "Instruction.hpp"
 #include "Opcode.hpp"
 #include "Operation.hpp"
-#include "Instruction.hpp"
+#include "Register.hpp"
+#include "Word.hpp"
 
 namespace openjoey::lacooda64 {
 
@@ -19,289 +19,205 @@ namespace openjoey::lacooda64 {
 
 // Nop: a no-op instruction.
 [[nodiscard]] constexpr Instruction Nop() noexcept {
-    return makeInstruction(Op(Opcode::Nop));
+  return MakeInstruction(Op(Opcode::kNop));
 }
 
 // Set: dst = src0 (typed move into a writable destination).
 [[nodiscard]] constexpr Instruction Set(Operand d, Operand s) noexcept {
-    return makeInstruction(Op(Opcode::Set), d, s);
+  return MakeInstruction(Op(Opcode::kSet), d, s);
 }
 
 // Load: dst register = value at address src0.
-[[nodiscard]] constexpr Instruction Load(Operand registerDst, Operand source) noexcept {
-    return makeInstruction(Op(Opcode::Load), registerDst, source);
+[[nodiscard]] constexpr Instruction Load(Operand dst_reg,
+                                         Operand source) noexcept {
+  return MakeInstruction(Op(Opcode::kLoad), dst_reg, source);
 }
 
 // Store: write src0 into control/address-attribute dst.
-[[nodiscard]] constexpr Instruction Store(Operand stateDst, Operand source) noexcept {
-    return makeInstruction(Op(Opcode::Store), stateDst, source);
+[[nodiscard]] constexpr Instruction Store(Operand state_dst,
+                                          Operand source) noexcept {
+  return MakeInstruction(Op(Opcode::kStore), state_dst, source);
 }
 
 // Copy: dst = src0 (distinct encoding from Set).
 [[nodiscard]] constexpr Instruction Copy(Operand d, Operand s) noexcept {
-    return makeInstruction(Op(Opcode::Copy), d, s);
+  return MakeInstruction(Op(Opcode::kCopy), d, s);
 }
 
 // Swap: exchange the values of dst and src0.
 [[nodiscard]] constexpr Instruction Swap(Operand a, Operand b) noexcept {
-    return makeInstruction(Op(Opcode::Swap), a, b);
+  return MakeInstruction(Op(Opcode::kSwap), a, b);
 }
 
 // Select: pick `selected` into address register dst.
-[[nodiscard]] constexpr Instruction Select(Operand addressReg,
+[[nodiscard]] constexpr Instruction Select(Operand address_reg,
                                            Address selected) noexcept {
-    return makeInstruction(Op(Opcode::Select), addressReg, selected);
+  return MakeInstruction(Op(Opcode::kSelect), address_reg, selected);
 }
 
-// Count: write the number of cards matching `container` into value register dst.
-[[nodiscard]] constexpr Instruction Count(Operand valueReg,
-                                        Address container) noexcept {
-    return makeInstruction(Op(Opcode::Count), valueReg, container);
+// Count: write the number of cards matching `container` into value reg dst.
+[[nodiscard]] constexpr Instruction Count(Operand value_reg,
+                                          Address container) noexcept {
+  return MakeInstruction(Op(Opcode::kCount), value_reg, container);
 }
 
 // Move: relocate cards from `source` into `destination` (src1 carries count).
 [[nodiscard]] constexpr Instruction Move(
-    Address destination,
-    Address source,
-    MoveMethod method,
-    CauseKind cause = CauseKind::Unspecified,
-    Word flags = Flag_None
-) noexcept {
-    return makeInstruction(
-        Op(Opcode::Move, sub(method), flags, cause),
-        destination,
-        source
-    );
+    Address destination, Address source, MoveMethod method,
+    CauseKind cause = CauseKind::kUnspecified,
+    Word flags = kFlagNone) noexcept {
+  return MakeInstruction(Op(Opcode::kMove, Sub(method), flags, cause),
+                         destination, source);
 }
 
 // Summon: summon `card` into the slot/card `destination`.
 [[nodiscard]] constexpr Instruction Summon(
-    Address destination,
-    Operand card,
-    SummonMethod method,
-    SummonMode mode = SummonMode::Default,
-    CauseKind cause = CauseKind::SummonProcedure,
-    Word flags = Flag_None
-) noexcept {
-    return makeInstruction(
-        Op(Opcode::Summon, summonSubcode(method, mode), flags, cause),
-        destination,
-        card
-    );
+    Address destination, Operand card, SummonMethod method,
+    SummonMode mode = SummonMode::kDefault,
+    CauseKind cause = CauseKind::kSummonProcedure,
+    Word flags = kFlagNone) noexcept {
+  return MakeInstruction(
+      Op(Opcode::kSummon, SummonSubcode(method, mode), flags, cause),
+      destination, card);
 }
 
 // Position: change the position of `target` (subcode = PositionOp).
 [[nodiscard]] constexpr Instruction Position(
-    Operand target,
-    PositionOp method,
-    CauseKind cause = CauseKind::Unspecified,
-    Word flags = Flag_None
-) noexcept {
-    return makeInstruction(
-        Op(Opcode::Position, sub(method), flags, cause),
-        target
-    );
+    Operand target, PositionOp method,
+    CauseKind cause = CauseKind::kUnspecified,
+    Word flags = kFlagNone) noexcept {
+  return MakeInstruction(Op(Opcode::kPosition, Sub(method), flags, cause),
+                         target);
 }
 
 // Equip: attach/detach/transfer equipment on `target` (subcode = EquipOp).
 [[nodiscard]] constexpr Instruction Equip(
-    Operand target,
-    Operand equipment,
-    EquipOp method = EquipOp::Attach,
-    CauseKind cause = CauseKind::CardEffect,
-    Word flags = Flag_None
-) noexcept {
-    return makeInstruction(
-        Op(Opcode::Equip, sub(method), flags, cause),
-        target,
-        equipment
-    );
+    Operand target, Operand equipment, EquipOp method = EquipOp::kAttach,
+    CauseKind cause = CauseKind::kCardEffect, Word flags = kFlagNone) noexcept {
+  return MakeInstruction(Op(Opcode::kEquip, Sub(method), flags, cause), target,
+                         equipment);
 }
 
 // Counter: add/remove/transfer counters on `target`.
 [[nodiscard]] constexpr Instruction Counter(
-    Operand target,
-    Operand amount,
-    CounterOp method,
-    CauseKind cause = CauseKind::CardEffect,
-    Word flags = Flag_None
-) noexcept {
-    return makeInstruction(
-        Op(Opcode::Counter, sub(method), flags, cause),
-        target,
-        amount
-    );
+    Operand target, Operand amount, CounterOp method,
+    CauseKind cause = CauseKind::kCardEffect, Word flags = kFlagNone) noexcept {
+  return MakeInstruction(Op(Opcode::kCounter, Sub(method), flags, cause),
+                         target, amount);
 }
 
 // ChangeControl: take/give/swap/return control of `card` (subcode = ControlOp).
 [[nodiscard]] constexpr Instruction ChangeControl(
-    Operand destination,
-    Operand card,
-    ControlOp method,
-    CauseKind cause = CauseKind::CardEffect,
-    Word flags = Flag_None
-) noexcept {
-    return makeInstruction(
-        Op(Opcode::Control, sub(method), flags, cause),
-        destination,
-        card
-    );
+    Operand destination, Operand card, ControlOp method,
+    CauseKind cause = CauseKind::kCardEffect, Word flags = kFlagNone) noexcept {
+  return MakeInstruction(Op(Opcode::kControl, Sub(method), flags, cause),
+                         destination, card);
 }
 
 // Negate: negate an activation/effect/summon/attack (subcode = NegateOp).
 [[nodiscard]] constexpr Instruction Negate(
-    Operand target,
-    NegateOp method,
-    CauseKind cause = CauseKind::CardEffect,
-    Word flags = Flag_None
-) noexcept {
-    return makeInstruction(
-        Op(Opcode::Negate, sub(method), flags, cause),
-        target
-    );
+    Operand target, NegateOp method, CauseKind cause = CauseKind::kCardEffect,
+    Word flags = kFlagNone) noexcept {
+  return MakeInstruction(Op(Opcode::kNegate, Sub(method), flags, cause),
+                         target);
 }
 
 // Restrict: apply/clear/increment/decrement a play restriction on `attribute`.
 [[nodiscard]] constexpr Instruction Restrict(
-    Address attribute,
-    Operand value,
-    RestrictOp method = RestrictOp::Apply,
-    CauseKind cause = CauseKind::CardEffect,
-    Word flags = Flag_None
-) noexcept {
-    return makeInstruction(
-        Op(Opcode::Restrict, sub(method), flags, cause),
-        attribute,
-        value
-    );
+    Address attribute, Operand value, RestrictOp method = RestrictOp::kApply,
+    CauseKind cause = CauseKind::kCardEffect, Word flags = kFlagNone) noexcept {
+  return MakeInstruction(Op(Opcode::kRestrict, Sub(method), flags, cause),
+                         attribute, value);
 }
 
 // Alu: binary integer op (dst = src0 <op> src1); subcode = AluOp.
-[[nodiscard]] constexpr Instruction Alu(
-    Operand valueReg,
-    Operand lhs,
-    Operand rhs,
-    AluOp method
-) noexcept {
-    return makeInstruction(Op(Opcode::Alu, sub(method)), valueReg, lhs, rhs);
+[[nodiscard]] constexpr Instruction Alu(Operand value_reg, Operand lhs,
+                                        Operand rhs, AluOp method) noexcept {
+  return MakeInstruction(Op(Opcode::kAlu, Sub(method)), value_reg, lhs, rhs);
 }
 
-// AluUnary: unary integer op (dst = <op>(src0)); src1 is None.
-[[nodiscard]] constexpr Instruction AluUnary(
-    Operand valueReg,
-    Operand value,
-    AluOp method
-) noexcept {
-    return makeInstruction(Op(Opcode::Alu, sub(method)), valueReg, value, None);
+// AluUnary: unary integer op (dst = <op>(src0)); src1 is kNone.
+[[nodiscard]] constexpr Instruction AluUnary(Operand value_reg, Operand value,
+                                             AluOp method) noexcept {
+  return MakeInstruction(Op(Opcode::kAlu, Sub(method)), value_reg, value,
+                         kNone);
 }
 
-// Compare: set flag register dst from comparing src0 vs src1 (subcode = CompareOp).
+// Compare: set flag register dst from comparing src0 vs src1 (subcode =
+// CompareOp).
 [[nodiscard]] constexpr Instruction Compare(
-    Operand flagReg,
-    Operand lhs,
-    Operand rhs,
-    CompareOp method = CompareOp::Equal
-) noexcept {
-    return makeInstruction(Op(Opcode::Compare, sub(method)), flagReg, lhs, rhs);
+    Operand flag_reg, Operand lhs, Operand rhs,
+    CompareOp method = CompareOp::kEqual) noexcept {
+  return MakeInstruction(Op(Opcode::kCompare, Sub(method)), flag_reg, lhs, rhs);
 }
 
 // Jump: unconditional jump to absolute PC `target`.
 [[nodiscard]] constexpr Instruction Jump(ProgramCounter target) noexcept {
-    return makeInstruction(
-        Op(Opcode::Jump, sub(JumpCondition::Always)),
-        None,
-        Imm(static_cast<SignedWord>(target))
-    );
+  return MakeInstruction(Op(Opcode::kJump, Sub(JumpCondition::kAlways)), kNone,
+                         Imm(static_cast<SignedWord>(target)));
 }
 
-// JumpIf: conditional jump to PC `target` when flag register `flagReg` holds.
+// JumpIf: conditional jump to PC `target` when flag register `flag_reg` holds.
 [[nodiscard]] constexpr Instruction JumpIf(
-    Operand flagReg,
-    ProgramCounter target,
-    JumpCondition condition = JumpCondition::True
-) noexcept {
-    return makeInstruction(
-        Op(Opcode::JumpIf, sub(condition)),
-        None,
-        flagReg,
-        Imm(static_cast<SignedWord>(target))
-    );
+    Operand flag_reg, ProgramCounter target,
+    JumpCondition condition = JumpCondition::kTrue) noexcept {
+  return MakeInstruction(Op(Opcode::kJumpIf, Sub(condition)), kNone, flag_reg,
+                         Imm(static_cast<SignedWord>(target)));
 }
 
-// Damage: apply `amount` damage to `playerOrLP`.
+// Damage: apply `amount` damage to `player_or_lp`.
 [[nodiscard]] constexpr Instruction Damage(
-    Operand playerOrLP,
-    Operand amount,
-    CauseKind cause = CauseKind::CardEffect,
-    Word flags = Flag_None
-) noexcept {
-    return makeInstruction(Op(Opcode::Damage, 0, flags, cause),
-                           playerOrLP, amount);
+    Operand player_or_lp, Operand amount,
+    CauseKind cause = CauseKind::kCardEffect, Word flags = kFlagNone) noexcept {
+  return MakeInstruction(Op(Opcode::kDamage, 0, flags, cause), player_or_lp,
+                         amount);
 }
 
-// GainLP: increase LP of `playerOrLP` by `amount`.
-[[nodiscard]] constexpr Instruction GainLP(
-    Operand playerOrLP,
-    Operand amount,
-    CauseKind cause = CauseKind::CardEffect,
-    Word flags = Flag_None
-) noexcept {
-    return makeInstruction(Op(Opcode::GainLP, 0, flags, cause),
-                           playerOrLP, amount);
+// GainLp: increase LP of `player_or_lp` by `amount`.
+[[nodiscard]] constexpr Instruction GainLp(
+    Operand player_or_lp, Operand amount,
+    CauseKind cause = CauseKind::kCardEffect, Word flags = kFlagNone) noexcept {
+  return MakeInstruction(Op(Opcode::kGainLp, 0, flags, cause), player_or_lp,
+                         amount);
 }
 
-// PayLP: decrease LP of `playerOrLP` by `amount` (a cost flag is set).
-[[nodiscard]] constexpr Instruction PayLP(
-    Operand playerOrLP,
-    Operand amount,
-    CauseKind cause = CauseKind::CardEffect,
-    Word flags = Flag_Cost
-) noexcept {
-    return makeInstruction(Op(Opcode::PayLP, 0, flags, cause),
-                           playerOrLP, amount);
+// PayLp: decrease LP of `player_or_lp` by `amount` (a cost flag is set).
+[[nodiscard]] constexpr Instruction PayLp(
+    Operand player_or_lp, Operand amount,
+    CauseKind cause = CauseKind::kCardEffect, Word flags = kFlagCost) noexcept {
+  return MakeInstruction(Op(Opcode::kPayLp, 0, flags, cause), player_or_lp,
+                         amount);
 }
 
 // RecordedRandom: replay form — dst already holds the resolved result; src1
 // optionally holds the domain size/context.
 [[nodiscard]] constexpr Instruction RecordedRandom(
-    Operand destinationRegister,
-    RandomKind kind,
-    Operand resolvedResult,
-    Operand domain = None
-) noexcept {
-    return makeInstruction(Op(Opcode::Random, sub(kind)),
-                           destinationRegister, resolvedResult, domain);
+    Operand destination_reg, RandomKind kind, Operand resolved_result,
+    Operand domain = kNone) noexcept {
+  return MakeInstruction(Op(Opcode::kRandom, Sub(kind)), destination_reg,
+                         resolved_result, domain);
 }
 
-// Event: emit an engine event (subcode = EventKind) with subject/object/context.
+// Event: emit an engine event (subcode = EventKind) with
+// subject/object/context.
 [[nodiscard]] constexpr Instruction Event(
-    EventKind kind,
-    Operand subject = None,
-    Operand object = None,
-    Operand context = None,
-    Word flags = Flag_None,
-    CauseKind cause = CauseKind::Unspecified,
-    Word aux = 0
-) noexcept {
-    return makeInstruction(
-        Op(Opcode::Event, sub(kind), flags, cause, aux),
-        subject, object, context
-    );
+    EventKind kind, Operand subject = kNone, Operand object = kNone,
+    Operand context = kNone, Word flags = kFlagNone,
+    CauseKind cause = CauseKind::kUnspecified, Word aux = 0) noexcept {
+  return MakeInstruction(Op(Opcode::kEvent, Sub(kind), flags, cause, aux),
+                         subject, object, context);
 }
 
 // Chain: drive chain-resolution protocol (subcode = ChainOp).
-[[nodiscard]] constexpr Instruction Chain(
-    ChainOp method,
-    Operand subject = None,
-    Operand context = None
-) noexcept {
-    return makeInstruction(Op(Opcode::Chain, sub(method)),
-                           subject, context);
+[[nodiscard]] constexpr Instruction Chain(ChainOp method,
+                                          Operand subject = kNone,
+                                          Operand context = kNone) noexcept {
+  return MakeInstruction(Op(Opcode::kChain, Sub(method)), subject, context);
 }
 
 // Halt: stop instruction execution.
 [[nodiscard]] constexpr Instruction Halt() noexcept {
-    return makeInstruction(Op(Opcode::Halt));
+  return MakeInstruction(Op(Opcode::kHalt));
 }
 
-} // namespace openjoey::lacooda64
+}  // namespace openjoey::lacooda64
