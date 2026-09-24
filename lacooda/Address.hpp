@@ -1,6 +1,7 @@
 #pragma once
 // OpenJoey2 - Lacooda / 64-bit word VM.
-// Address word: packed [level|player|zone|slot|card|attribute].
+// Address word: consumed low-to-high as level, player, zone, slot, card,
+// attribute.
 
 #include "Word.hpp"
 
@@ -9,17 +10,17 @@ namespace openjoey::lacooda64 {
 // -----------------------------------------------------------------------------
 // Address word
 //
-// Payload bits (53 used, 7 reserved):
+// Payload bits (56 used, 4 reserved):
 //
-//   payload bit
-//   59..53 52..50 49..48 47..42 41..36 35..12 11..0
-//   +-------+------+-----+------+------+---------+----------+
-//   | rsvd | level |  p  | zone | slot | card inst | attribute|
-//   +-------+------+-----+------+------+---------+----------+
-//       7      3      2      6      6        24         12
+//   payload bit (after removing the low tag with PayloadOf)
+//   59..56  55..44      43..20     19..14 13..8  7..4  3..0
+//   +-------+-----------+----------+------+------+-----+-------+
+//   | rsvd  | attribute | card inst| slot | zone | p   | level |
+//   +-------+-----------+----------+------+------+-----+-------+
+//       4        12          24        6      6     4       4
 //
 // Full 64-bit word:
-//   63..60 = WordTag::kAddress
+//   3..0 = WordTag::kAddress
 //
 // Address depth:
 //   Duel   [a]
@@ -44,15 +45,26 @@ inline constexpr Word kAttributeBits = 12;
 inline constexpr Word kCardBits = 24;
 inline constexpr Word kSlotBits = 6;
 inline constexpr Word kZoneBits = 6;
-inline constexpr Word kPlayerBits = 2;
-inline constexpr Word kLevelBits = 3;
+inline constexpr Word kPlayerBits = 4;
+inline constexpr Word kLevelBits = 4;
 
-inline constexpr Word kAttributeShift = 0;
-inline constexpr Word kCardShift = kAttributeShift + kAttributeBits;
-inline constexpr Word kSlotShift = kCardShift + kCardBits;
-inline constexpr Word kZoneShift = kSlotShift + kSlotBits;
-inline constexpr Word kPlayerShift = kZoneShift + kZoneBits;
-inline constexpr Word kLevelShift = kPlayerShift + kPlayerBits;
+static_assert(kLevelBits > 0 && kPlayerBits > 0 && kZoneBits > 0 &&
+              kSlotBits > 0 && kCardBits > 0 && kAttributeBits > 0,
+              "Address fields must have nonzero widths");
+static_assert(kLevelBits + kPlayerBits + kZoneBits + kSlotBits + kCardBits +
+                  kAttributeBits <= kPayloadBits,
+              "Address fields exceed the payload");
+
+// Read order: level, player, zone, slot, card, attribute.
+inline constexpr Word kLevelShift = 0;
+inline constexpr Word kPlayerShift = kLevelShift + kLevelBits;
+inline constexpr Word kZoneShift = kPlayerShift + kPlayerBits;
+inline constexpr Word kSlotShift = kZoneShift + kZoneBits;
+inline constexpr Word kCardShift = kSlotShift + kSlotBits;
+inline constexpr Word kAttributeShift = kCardShift + kCardBits;
+inline constexpr Word kReservedAddressBits =
+    kPayloadBits - (kAttributeShift + kAttributeBits);
+
 
 inline constexpr Word kAttributeMask = (Word{1} << kAttributeBits) - 1;
 inline constexpr Word kCardMask = (Word{1} << kCardBits) - 1;
@@ -60,6 +72,30 @@ inline constexpr Word kSlotMask = (Word{1} << kSlotBits) - 1;
 inline constexpr Word kZoneMask = (Word{1} << kZoneBits) - 1;
 inline constexpr Word kPlayerMask = (Word{1} << kPlayerBits) - 1;
 inline constexpr Word kLevelMask = (Word{1} << kLevelBits) - 1;
+
+static_assert(static_cast<Word>(AddressLevel::kCard) <= kLevelMask,
+              "Level width cannot represent all address levels");
+
+// Decoded fields in low-to-high consumption order. Assumes an address word.
+struct AddressFields {
+  AddressLevel level;
+  PlayerId player;
+  ZoneId zone;
+  SlotId slot;
+  CardInstanceId card;
+  AttributeId attribute;
+};
+
+[[nodiscard]] constexpr AddressFields DecodeAddress(Address address) noexcept {
+  Word cursor = PayloadOf(address);
+  const auto level = static_cast<AddressLevel>(TakeField<kLevelBits>(cursor));
+  const auto player = TakeField<kPlayerBits>(cursor);
+  const auto zone = TakeField<kZoneBits>(cursor);
+  const auto slot = TakeField<kSlotBits>(cursor);
+  const auto card = TakeField<kCardBits>(cursor);
+  const auto attribute = TakeField<kAttributeBits>(cursor);
+  return {level, player, zone, slot, card, attribute};
+}
 
 // Attribute selector meaning "the object itself" (no attribute).
 inline constexpr AttributeId kSelf = 0;

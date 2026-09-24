@@ -11,15 +11,15 @@ namespace openjoey::lacooda64 {
 //
 // Payload bits (60 used, none reserved):
 //
-//   payload bit
+//   payload bit (after removing the low tag with PayloadOf)
 //   59     58..0
 //   +------+-----------------------------------------------------------+
-//   | sign | remaining two's-complement bits                            |
+//   | sign | remaining two's-complement bits                           |
 //   +------+-----------------------------------------------------------+
 //       1                              59
 //
 // Full 64-bit word:
-//   63..60 = WordTag::kImmediate
+//   3..0 = WordTag::kImmediate
 //
 // Range: [-2^59, 2^59-1]. Imm masks to 60 bits; ImmediateValue sign-extends
 // bit 59 back to a SignedWord. Out-of-range inputs are not rejected.
@@ -27,8 +27,10 @@ namespace openjoey::lacooda64 {
 
 // An Immediate occupies the full 60-bit payload as a signed two's-complement
 // value, giving a symmetric-ish range of [-2^59, 2^59-1].
-inline constexpr SignedWord kImmediateMin = -(SignedWord{1} << 59);
-inline constexpr SignedWord kImmediateMax = (SignedWord{1} << 59) - 1;
+inline constexpr SignedWord kImmediateMin =
+    -(SignedWord{1} << (kPayloadBits - 1));
+inline constexpr SignedWord kImmediateMax =
+    (SignedWord{1} << (kPayloadBits - 1)) - 1;
 
 // Wraps a signed value into an Immediate-tagged operand. The payload is masked
 // to 60 bits, so callers must keep `v` within [kImmediateMin, kImmediateMax].
@@ -40,7 +42,7 @@ inline constexpr SignedWord kImmediateMax = (SignedWord{1} << 59) - 1;
 // 64-bit signed value. Assumes `w` is already Immediate-tagged.
 [[nodiscard]] constexpr SignedWord ImmediateValue(Operand w) noexcept {
   Word p = PayloadOf(w);
-  constexpr Word sign = Word{1} << 59;
+  constexpr Word sign = Word{1} << (kPayloadBits - 1);
   if (p & sign) {
     p |= ~kPayloadMask;  // extend the sign bit into the unused high bits
   }

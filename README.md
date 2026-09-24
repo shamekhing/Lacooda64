@@ -365,6 +365,9 @@ const auto result = ValidateTrace(bad_branch);
 | `kInvalidInstruction` | An instruction failed its structural checks |
 | `kJumpOutOfRange` | A target is negative or outside the trace |
 
+Jump builders encode targets above `kImmediateMax` as an invalid negative target,
+so validation rejects them instead of accepting a truncated PC.
+
 An empty trace is valid. Validation does not require a Halt or establish that the
 program terminates. It checks representation and operand structure; the engine
 checks game legality and whether addressed objects exist.
@@ -391,7 +394,7 @@ branch-range checks to `ValidateTrace`. Its result contains `trace_`, `error_`,
 | `kInvalidInstruction` | First word of the failing instruction | Valid prefix before the failure |
 
 A failed decode may return a partial trace, so check the result before using it.
-`Decode` allocates inside a `noexcept` function; allocation failure terminates.
+`Decode` allocates; allocation exceptions propagate to the caller.
 
 The library currently has no byte-buffer decoder. A host reading bytes must check
 that the length is a multiple of 32, reconstruct words from groups of eight
@@ -401,19 +404,80 @@ protocol must supply its own framing, version, and ruleset identification.
 ## Binary format
 
 Bit ranges below are inclusive. Bit 0 is the least-significant bit. Each encoded
-word has a four-bit tag in bits 63..60 and a 60-bit payload in bits 59..0.
+word has a four-bit tag in bits 3..0 and a 60-bit payload in bits 63..4.
+Payload diagrams use normalized positions 59..0, after removing the tag.
 
 ```text
- 63..60 59..0
-+------+------------------------------------------------------------+
-| tag  | payload                                                    |
-+------+------------------------------------------------------------+
-    4                              60
+ 63..4                                                        3..0
++------------------------------------------------------------+------+
+| payload                                                    | tag  |
++------------------------------------------------------------+------+
+                             60                                  4
 ```
 
 `Word` is `std::uint64_t`; `SignedWord` is `std::int64_t`. `Address`, `Operand`,
 `OperationWord`, and the identifier types are aliases of `Word`. Tags distinguish
 encoded values at runtime; the aliases do not introduce separate C++ types.
+
+### Sequential decoding
+
+Read from the least-significant end: take a field, shift it away, and continue.
+`TakeField<Width>(cursor)` masks and consumes exactly the named width. Widths
+are compile-time constants; values from 1 through 64 are supported.
+
+```cpp
+Word cursor = Op(Opcode::kMove, Sub(MoveMethod::kDraw), kFlagPublic,
+                 CauseKind::kCardEffect, 42);
+const auto tag = static_cast<WordTag>(TakeField<kTagBits>(cursor));
+const auto opcode = static_cast<Opcode>(TakeField<kOpBits>(cursor));
+const auto subcode = TakeField<kSubBits>(cursor);
+const auto flags = TakeField<kFlagsBits>(cursor);
+const auto cause = static_cast<CauseKind>(TakeField<kCauseBits>(cursor));
+const auto aux = TakeField<kAuxBits>(cursor);
+// cursor now contains the four reserved bits.
+```
+
+The consumption order is:
+
+| Kind | Fields after the tag |
+| --- | --- |
+| Operation | Opcode → subcode → flags → cause → aux → reserved |
+| Address | Level → player → zone → slot → card instance → attribute → reserved |
+| Register | Bank → index → reserved |
+| Immediate | Signed 60-bit payload |
+| Control | 60-bit selector |
+
+`DecodeOperation`, `DecodeAddress`, and `DecodeRegister` return field structures
+using this sequence. They assume the appropriate tag and do not validate the
+word. `PayloadOf` removes the low tag and normalizes the remaining payload;
+individual accessors use offsets cumulatively derived from the same widths.
+
+```cpp
+constexpr auto fields = DecodeOperation(
+    Op(Opcode::kMove, Sub(MoveMethod::kDraw), kFlagPublic));
+static_assert(fields.opcode == Opcode::kMove);
+static_assert(fields.subcode == Sub(MoveMethod::kDraw));
+static_assert(fields.flags == kFlagPublic);
+```
+
+**Encoding compatibility:** this layout replaces the former high-bit tag format.
+Previously encoded words/bytes must be re-encoded from their original format;
+there is no automatic legacy-format detection. Instruction size and little-endian
+byte order remain unchanged.
+
+### Changing field widths
+
+The `k*Bits` constants are the layout definitions. Shifts and masks are derived
+from them, and address/operation reserved space is the unused payload remainder.
+Compile-time checks reject fields that exceed the payload or cannot represent
+supported enum values. Register storage is sized from `kRegisterIndexBits`.
+
+Encoding tests use an independent bit-by-bit reference driven by those widths,
+including boundary and overflow cases. They do not require updating hexadecimal
+fixtures after a valid width change. The diagrams and numeric ranges here describe
+the current configuration and must be updated when changing it. All producers and
+consumers must use the same widths; stored bytecode from another layout needs
+migration.
 
 ### Tags
 
@@ -434,20 +498,20 @@ are not currently valid operands.
 
 ### Address word
 
-**Tag:** `WordTag::kAddress` · **Payload:** 53 used bits, 7 reserved
+**Tag:** `WordTag::kAddress` · **Payload:** 56 used bits, 4 reserved
 
 ```text
- 59..53 52..50 49..48 47..42 41..36 35..12     11..0
-+-------+-------+------+-------+-------+-----------+-----------+
-| rsvd  | level | p    | zone  | slot  | card inst | attribute |
-+-------+-------+------+-------+-------+-----------+-----------+
-    7       3      2       6       6        24          12
+ 59..56 55..44     43..20     19..14 13..8  7..4  3..0
++-------+-----------+----------+------+------+-----+-------+
+| rsvd  | attribute | card inst| slot | zone | p   | level |
++-------+-----------+----------+------+------+-----+-------+
+    4        12          24        6      6     4       4
 ```
 
 | Field | Width | Values |
 | --- | --- | --- |
-| Level | 3 | `kDuel` = 0, `kPlayer` = 1, `kZone` = 2, `kSlot` = 3, `kCard` = 4 |
-| Player | 2 | 0..3 |
+| Level | 4 | `kDuel` = 0, `kPlayer` = 1, `kZone` = 2, `kSlot` = 3, `kCard` = 4 |
+| Player | 4 | 0..15 |
 | Zone | 6 | 0..63 |
 | Slot | 6 | 0..63 |
 | Card instance | 24 | 0..16,777,215 |
@@ -462,15 +526,15 @@ fields they do not use. Accessors are `LevelOf`, `PlayerOf`, `ZoneOf`, `SlotOf`,
 **Tag:** `WordTag::kRegister` · **Payload:** 10 used bits, 50 reserved
 
 ```text
- 59..10                         9..8   7..0
+ 59..10                         9..2   1..0
 +------------------------------+------+----------+
-| reserved                     | bank | index    |
+| reserved                     | index| bank     |
 +------------------------------+------+----------+
-               50                  2        8
+               50                  8        2
 ```
 
 Bank 0 is `RegisterBank::kValue`, bank 1 is `kAddress`, and bank 2 is `kFlag`.
-Bank 3 is invalid. `Reg(bank, index)` packs a selector; `RegisterBankOf` and
+Bank 3 is invalid. Storage uses `kRegisterCount`, derived from the index width. `Reg(bank, index)` packs a selector; `RegisterBankOf` and
 `RegisterIndexOf` extract its components.
 
 ### Immediate word
@@ -524,11 +588,11 @@ its payload is not the current value of that cell.
 **Tag:** `WordTag::kOperation` · **Payload:** 56 used bits, 4 reserved
 
 ```text
- 59..52  51..40    39..28    27..20  19..4       3..0
-+--------+----------+----------+--------+------------+------+
-| opcode | subcode  | flags    | cause  | aux        | rsvd |
-+--------+----------+----------+--------+------------+------+
-     8        12         12        8         16         4
+ 59..56 55..40  39..32  31..20    19..8     7..0
++-------+-------+-------+----------+----------+--------+
+| rsvd  | aux   | cause | flags    | subcode  | opcode |
++-------+-------+-------+----------+----------+--------+
+    4      16       8       12         12        8
 ```
 
 `Op(opcode, subcode, flags, cause, aux)` writes reserved bits as zero. The field
@@ -661,7 +725,16 @@ module includes its own dependencies and can also be included directly.
 
 Packing, extraction, builders, and single-instruction validation are generally
 `constexpr` and `noexcept`. Program containers and serialization use dynamically
-allocated vectors. The CMake project currently defines no CTest suite.
+allocated vectors. The CMake project provides encoding checks through CTest. Enable them explicitly:
+
+```sh
+cmake -S . -B build -DLACOODA64_BUILD_TESTS=ON
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
+The checks cover known encoded words and bytes, sequential decoding, field
+boundaries, signed immediates, and trace validation/serialization.
 
 ## License
 

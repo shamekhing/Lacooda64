@@ -43,11 +43,11 @@ inline constexpr Address kP0Monsters = Zone(0, kZoneMonster, kSelf);
 //   HALT
 //
 // effect:
-//   MOVE     DRAW, P0.DECK, P0.HAND, #2
+//   MOVE     DRAW, P0.HAND, P0.DECK, #2
 //   HALT
 //
 // `MOVE DRAW ... #2` needs a count operand. The fixed 4-word machine expresses
-// that count through src1, while source/destination occupy dst/src0.
+// that count through src1, while destination/source occupy dst/src0.
 inline constexpr Instruction kCountMonsters = Count(V(0), kP0Monsters);
 
 inline constexpr Instruction kCompareThree =

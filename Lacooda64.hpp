@@ -24,8 +24,8 @@
 //   [3] source operand 1
 //
 // Operand layout:
-//   63..60  tag
-//   59..0   payload
+//   63..4   payload
+//   3..0    tag
 //
 
 #include <type_traits>

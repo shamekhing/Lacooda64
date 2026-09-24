@@ -14,7 +14,7 @@ namespace openjoey::lacooda64 {
 //
 // Payload bits (60-bit selector; current valid values are 0..5):
 //
-//   payload bit
+//   payload bit (after removing the low tag with PayloadOf)
 //   59..0
 //   +------------------------------------------------------------+
 //   | ControlReg selector                                        |
@@ -22,7 +22,7 @@ namespace openjoey::lacooda64 {
 //                               60
 //
 // Full 64-bit word:
-//   63..60 = WordTag::kControl
+//   3..0 = WordTag::kControl
 //
 // 0 Turn, 1 Phase, 2 Step, 3 Chain, 4 Effect, 5 ProgramCounter.
 // The payload selects a ControlState cell; it does not hold its value.

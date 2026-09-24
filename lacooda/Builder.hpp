@@ -152,10 +152,18 @@ namespace openjoey::lacooda64 {
   return MakeInstruction(Op(Opcode::kCompare, Sub(method)), flag_reg, lhs, rhs);
 }
 
+// Encode an unrepresentable PC as -1 so ValidateTrace rejects it rather than
+// accepting a wrapped target. Normal immediate packing still masks its input.
+[[nodiscard]] constexpr Operand JumpTarget(ProgramCounter target) noexcept {
+  return Imm(target <= static_cast<Word>(kImmediateMax)
+                 ? static_cast<SignedWord>(target)
+                 : SignedWord{-1});
+}
+
 // Jump: unconditional jump to absolute PC `target`.
 [[nodiscard]] constexpr Instruction Jump(ProgramCounter target) noexcept {
   return MakeInstruction(Op(Opcode::kJump, Sub(JumpCondition::kAlways)), kNone,
-                         Imm(static_cast<SignedWord>(target)));
+                         JumpTarget(target));
 }
 
 // JumpIf: conditional jump to PC `target` when flag register `flag_reg` holds.
@@ -163,7 +171,7 @@ namespace openjoey::lacooda64 {
     Operand flag_reg, ProgramCounter target,
     JumpCondition condition = JumpCondition::kTrue) noexcept {
   return MakeInstruction(Op(Opcode::kJumpIf, Sub(condition)), kNone, flag_reg,
-                         Imm(static_cast<SignedWord>(target)));
+                         JumpTarget(target));
 }
 
 // Damage: apply `amount` damage to `player_or_lp`.

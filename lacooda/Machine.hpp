@@ -9,6 +9,7 @@
 
 #include "Control.hpp"
 #include "Instruction.hpp"
+#include "Register.hpp"
 #include "Validate.hpp"
 #include "Word.hpp"
 
@@ -18,13 +19,12 @@ namespace openjoey::lacooda64 {
 // VM register files — all cells are 64-bit words
 // -----------------------------------------------------------------------------
 
-// The VM's three register files. Each holds 256 Words; the active bank is
-// implicit in the operand tag/register-bank, so all three arrays are indexed by
-// the same 8-bit register index.
+// Each bank is sized from the encoded register-index width, so changing that
+// width keeps every representable index within the corresponding array.
 struct Registers {
-  std::array<Word, 256> value{};    // normally Immediate-tagged words
-  std::array<Word, 256> address{};  // Address-tagged words
-  std::array<Word, 256> flag{};     // Immediate 0/1 words
+  std::array<Word, kRegisterCount> value{};    // normally Immediate-tagged words
+  std::array<Word, kRegisterCount> address{};  // Address-tagged words
+  std::array<Word, kRegisterCount> flag{};     // Immediate 0/1 words
 };
 
 // Snapshot of the VM control and general register files. The host owns duel
@@ -78,9 +78,8 @@ struct DecodeResult {
 
 // Decodes a flat Word stream, validating each instruction but not jump bounds.
 // Call ValidateTrace on success to check targets. On instruction failure, trace_
-// contains the valid prefix. This noexcept function allocates; allocation failure
-// terminates rather than propagating an exception.
-[[nodiscard]] inline DecodeResult Decode(const ProgramWords& words) noexcept {
+// contains the valid prefix. Allocation exceptions propagate to the caller.
+[[nodiscard]] inline DecodeResult Decode(const ProgramWords& words) {
   DecodeResult out{};
   if ((words.size() % 4) != 0) {
     out.error_ = DecodeError::kMisalignedWordCount;
