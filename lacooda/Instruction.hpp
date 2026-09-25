@@ -40,27 +40,15 @@ enum InstructionField : std::size_t {
 
 // Assembles a 4-Word instruction from its decoded slots. `dst`/`src0`/`src1`
 // default to kNone (WordTag::kNone) for opcodes that ignore them.
-[[nodiscard]] constexpr Instruction MakeInstruction(
-    OperationWord op, Operand dst = kNone, Operand src0 = kNone,
-    Operand src1 = kNone) noexcept {
-  return {op, dst, src0, src1};
-}
+[[nodiscard]] constexpr Instruction MakeInstruction(OperationWord op, Operand dst = kNone, Operand src0 = kNone, Operand src1 = kNone) noexcept { return {op, dst, src0, src1}; }
 
 // [0] Returns the operation Word of instruction `i`.
-[[nodiscard]] constexpr OperationWord Operation(const Instruction& i) noexcept {
-  return i[kIOp];
-}
+[[nodiscard]] constexpr OperationWord Operation(const Instruction& i) noexcept { return i[kIOp]; }
 // [1] Returns the destination operand of instruction `i`.
-[[nodiscard]] constexpr Operand Dst(const Instruction& i) noexcept {
-  return i[kIDst];
-}
+[[nodiscard]] constexpr Operand Dst(const Instruction& i) noexcept { return i[kIDst]; }
 // [2] Returns source operand 0 of instruction `i`.
-[[nodiscard]] constexpr Operand Src0(const Instruction& i) noexcept {
-  return i[kISrc0];
-}
+[[nodiscard]] constexpr Operand Src0(const Instruction& i) noexcept { return i[kISrc0]; }
 // [3] Returns source operand 1 of instruction `i`.
-[[nodiscard]] constexpr Operand Src1(const Instruction& i) noexcept {
-  return i[kISrc1];
-}
+[[nodiscard]] constexpr Operand Src1(const Instruction& i) noexcept { return i[kISrc1]; }
 
 }  // namespace openjoey::lacooda64

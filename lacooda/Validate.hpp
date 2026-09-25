@@ -29,14 +29,11 @@ namespace openjoey::lacooda64 {
     case WordTag::kAddress:
       return ValidAddress(o);
     case WordTag::kRegister:
-      return RegisterBankOf(o) == RegisterBank::kValue ||
-             RegisterBankOf(o) == RegisterBank::kAddress ||
-             RegisterBankOf(o) == RegisterBank::kFlag;
+      return RegisterBankOf(o) == RegisterBank::kValue || RegisterBankOf(o) == RegisterBank::kAddress || RegisterBankOf(o) == RegisterBank::kFlag;
     case WordTag::kImmediate:
       return true;
     case WordTag::kControl:
-      return static_cast<Word>(ControlRegOf(o)) <
-             static_cast<Word>(ControlReg::kCount);
+      return static_cast<Word>(ControlRegOf(o)) < static_cast<Word>(ControlReg::kCount);
     default:
       return false;
   }
@@ -47,8 +44,65 @@ namespace openjoey::lacooda64 {
 // most subcodes, metadata, reserved bits, and unused slots are not constrained.
 [[nodiscard]] constexpr bool ValidInstruction(const Instruction& i) noexcept {
   if (!IsTag(Operation(i), WordTag::kOperation)) return false;
-  if (!ValidOperand(Dst(i)) || !ValidOperand(Src0(i)) || !ValidOperand(Src1(i)))
-    return false;
+  if (!ValidOperand(Dst(i)) || !ValidOperand(Src0(i)) || !ValidOperand(Src1(i))) return false;
+
+  // Bound enum subcodes before execution. Unused metadata bits remain
+  // round-trippable; undefined methods must not silently become a relocation.
+  const auto sub = SubcodeOf(Operation(i));
+  switch (OpcodeOf(Operation(i))) {
+    case Opcode::kMove:
+      if (sub > Sub(MoveMethod::kDetachMaterial)) return false;
+      break;
+    case Opcode::kSummon:
+      if (Sub(SummonMethodOf(sub)) > Sub(SummonMethod::kToken) || Sub(SummonModeOf(sub)) > Sub(SummonMode::kSet)) return false;
+      break;
+    case Opcode::kPosition:
+      if (sub > Sub(PositionOp::kToggle)) return false;
+      break;
+    case Opcode::kEquip:
+      if (sub > Sub(EquipOp::kTransfer)) return false;
+      break;
+    case Opcode::kCounter:
+      if (sub > Sub(CounterOp::kSet)) return false;
+      break;
+    case Opcode::kControl:
+      if (sub > Sub(ControlOp::kReturn)) return false;
+      break;
+    case Opcode::kNegate:
+      if (sub > Sub(NegateOp::kAttack)) return false;
+      break;
+    case Opcode::kRestrict:
+      if (sub > Sub(RestrictOp::kDecrement)) return false;
+      break;
+    case Opcode::kCompare:
+      if (sub > Sub(CompareOp::kGreaterEqual)) return false;
+      break;
+    case Opcode::kJumpIf:
+      if (sub > Sub(JumpCondition::kGreaterEqual)) return false;
+      break;
+    case Opcode::kRandom:
+      if (sub > Sub(RandomKind::kCutPoint)) return false;
+      break;
+    case Opcode::kEvent:
+      if (sub > Sub(EventKind::kDraw)) return false;
+      break;
+    case Opcode::kEnumerate:
+    case Opcode::kAt:
+    case Opcode::kAppend:
+    case Opcode::kLength:
+    case Opcode::kAttribute:
+    case Opcode::kChoose:
+    case Opcode::kStage:
+    case Opcode::kSchedule:
+    case Opcode::kSubscribe:
+    case Opcode::kCancel:
+    case Opcode::kCommit:
+    case Opcode::kUnmodify:
+      if (sub != 0) return false;
+      break;
+    default:
+      break;
+  }
 
   switch (OpcodeOf(Operation(i))) {
     case Opcode::kNop:
@@ -67,31 +121,25 @@ namespace openjoey::lacooda64 {
 
     case Opcode::kStore:
       // dst is a control/address-attribute; src0 must be present.
-      return (IsControl(Dst(i)) ||
-              (IsAddress(Dst(i)) && IsAttribute(Dst(i)))) &&
-             !IsNone(Src0(i));
+      return (IsControl(Dst(i)) || (IsAddress(Dst(i)) && IsAttribute(Dst(i))) || IsAddressRegister(Dst(i))) && !IsNone(Src0(i));
 
     case Opcode::kSwap:
       // Both operand slots must be present.
       return !IsNone(Dst(i)) && !IsNone(Src0(i));
 
     case Opcode::kSelect:
-      return IsAddressRegister(Dst(i)) && IsAddress(Src0(i));
+      return IsAddressRegister(Dst(i)) && IsAddressSource(Src0(i));
 
     case Opcode::kCount:
-      return IsValueRegister(Dst(i)) && IsAddress(Src0(i));
+      return IsValueRegister(Dst(i)) && IsAddressSource(Src0(i));
 
     case Opcode::kMove:
       // Both must be whole objects (not attributes).
-      return IsAddress(Dst(i)) && IsAddress(Src0(i)) && IsObject(Dst(i)) &&
-             IsObject(Src0(i));
+      return IsAddressSource(Dst(i)) && IsAddressSource(Src0(i)) && (!IsAddress(Dst(i)) || IsObject(Dst(i))) && (!IsAddress(Src0(i)) || IsObject(Src0(i))) && (IsNone(Src1(i)) || IsValueSource(Src1(i)));
 
     case Opcode::kSummon:
       // Destination is a slot/card object; src0 is the card being summoned.
-      return IsAddress(Dst(i)) && IsObject(Dst(i)) &&
-             (LevelOf(Dst(i)) == AddressLevel::kSlot ||
-              LevelOf(Dst(i)) == AddressLevel::kCard) &&
-             !IsNone(Src0(i));
+      return (IsAddressRegister(Dst(i)) || (IsAddress(Dst(i)) && IsObject(Dst(i)) && (LevelOf(Dst(i)) == AddressLevel::kSlot || LevelOf(Dst(i)) == AddressLevel::kCard))) && !IsNone(Src0(i));
 
     case Opcode::kPosition:
     case Opcode::kNegate:
@@ -106,7 +154,7 @@ namespace openjoey::lacooda64 {
 
     case Opcode::kRestrict:
       // dst must name an attribute, not a whole object.
-      return IsAddress(Dst(i)) && IsAttribute(Dst(i)) && !IsNone(Src0(i));
+      return (IsAddressRegister(Dst(i)) || (IsAddress(Dst(i)) && IsAttribute(Dst(i)))) && !IsNone(Src0(i));
 
     case Opcode::kAlu: {
       if (!IsValueRegister(Dst(i)) || !IsValueSource(Src0(i))) return false;
@@ -143,7 +191,34 @@ namespace openjoey::lacooda64 {
     case Opcode::kPayLp:
       return IsAddressSource(Dst(i)) && IsValueSource(Src0(i));
 
+    case Opcode::kHistory:
+      return IsRegister(Dst(i)) && IsNone(Src1(i)) && sub <= Sub(HistoryField::kContext) && (sub == Sub(HistoryField::kCount) ? IsNone(Src0(i)) : IsValueSource(Src0(i)));
+    case Opcode::kEnumerate:
+      return IsValueRegister(Dst(i)) && (IsNone(Src0(i)) || IsAddressSource(Src0(i))) && IsNone(Src1(i));
+    case Opcode::kAt:
+      return IsAddressRegister(Dst(i)) && IsValueRegister(Src0(i)) && IsValueSource(Src1(i));
+    case Opcode::kAppend:
+      return IsValueRegister(Dst(i)) && IsAddressSource(Src0(i)) && IsNone(Src1(i));
+    case Opcode::kLength:
+      return IsValueRegister(Dst(i)) && IsValueRegister(Src0(i)) && IsNone(Src1(i));
+    case Opcode::kAttribute:
+      return IsAddressRegister(Dst(i)) && IsAddressSource(Src0(i)) && IsValueSource(Src1(i));
+    case Opcode::kChoose:
+      return ((IsAddressRegister(Dst(i)) && IsValueRegister(Src0(i))) || (IsValueRegister(Dst(i)) && IsValueSource(Src0(i)))) && IsValueSource(Src1(i));
+    case Opcode::kModify:
+      return IsValueRegister(Dst(i)) && IsAddressSource(Src0(i)) && IsValueSource(Src1(i)) && SubcodeOf(Operation(i)) <= Sub(ModifierOp::kDivide);
+    case Opcode::kStage:
+    case Opcode::kSchedule:
+    case Opcode::kSubscribe:
+      return IsValueRegister(Dst(i)) && IsImmediate(Src0(i)) && IsValueSource(Src1(i));
+    case Opcode::kCommit:
+    case Opcode::kUnmodify:
+    case Opcode::kCancel:
+      return IsNone(Dst(i)) && IsValueSource(Src0(i)) && IsNone(Src1(i));
     case Opcode::kRandom:
+      // Missing src0 requests a seeded draw in [0, src1); a present src0
+      // records an already resolved result for replay.
+      if (IsNone(Src0(i))) return IsValueRegister(Dst(i)) && IsValueSource(Src1(i));
       if (IsValueRegister(Dst(i))) return IsImmediate(Src0(i));
       if (IsAddressRegister(Dst(i))) return IsAddress(Src0(i));
       return false;
@@ -174,32 +249,25 @@ struct ValidationResult {
   ValidationError error_{ValidationError::kNone};
   Word instruction_{0};  // Index (PC) of the offending instruction.
 
-  [[nodiscard]] constexpr bool ok() const noexcept {
-    return error_ == ValidationError::kNone;
-  }
-  [[nodiscard]] constexpr explicit operator bool() const noexcept {
-    return ok();
-  }
+  [[nodiscard]] constexpr bool ok() const noexcept { return error_ == ValidationError::kNone; }
+  [[nodiscard]] constexpr explicit operator bool() const noexcept { return ok(); }
 };
 
 // Validates a whole trace: every instruction must be well-formed and every
 // Jump/JumpIf target must be a valid instruction index.
-[[nodiscard]] inline ValidationResult ValidateTrace(
-    const Trace& trace) noexcept {
+[[nodiscard]] inline ValidationResult ValidateTrace(const Trace& trace) noexcept {
   for (Word pc = 0; pc < trace.size(); ++pc) {
     const auto& i = trace[static_cast<std::size_t>(pc)];
     if (!ValidInstruction(i)) return {ValidationError::kInvalidInstruction, pc};
 
     const auto op = OpcodeOf(Operation(i));
-    if (op == Opcode::kJump) {
+    if (op == Opcode::kJump || op == Opcode::kStage || op == Opcode::kSchedule || op == Opcode::kSubscribe) {
       const SignedWord t = ImmediateValue(Src0(i));
-      if (t < 0 || static_cast<Word>(t) >= trace.size())
-        return {ValidationError::kJumpOutOfRange, pc};
+      if (t < 0 || static_cast<Word>(t) >= trace.size()) return {ValidationError::kJumpOutOfRange, pc};
     }
     if (op == Opcode::kJumpIf) {
       const SignedWord t = ImmediateValue(Src1(i));
-      if (t < 0 || static_cast<Word>(t) >= trace.size())
-        return {ValidationError::kJumpOutOfRange, pc};
+      if (t < 0 || static_cast<Word>(t) >= trace.size()) return {ValidationError::kJumpOutOfRange, pc};
     }
   }
   return {};

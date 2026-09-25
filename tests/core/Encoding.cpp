@@ -199,9 +199,15 @@ int main() {
   }
   bool ok = check(Encode(trace) == expected_words, "Unexpected encoded words");
   ok &= check(EncodeBytes(trace) == expected, "Unexpected encoded bytes");
-  const Trace effect{example::kCountMonsters, example::kCompareThree,
-                     example::kJumpToEffect,  Halt(),
-                     example::kDrawTwo,       Halt()};
+  // Local fixture: ruleset-specific example addresses stay outside the core.
+  const Trace effect{
+      Count(V(0), Zone(0, 1, kSelf)),
+      Compare(F(0), V(0), Imm(3), CompareOp::kGreaterEqual),
+      JumpIf(F(0), 4), Halt(),
+      MakeInstruction(Op(Opcode::kMove, Sub(MoveMethod::kDraw), kFlagNone,
+                         CauseKind::kCardEffect),
+                      Zone(0, 3, kSelf), Zone(0, 2, kSelf), Imm(2)),
+      Halt()};
   const auto decoded = Decode(Encode(effect));
   ok &= check(decoded.ok() && decoded.trace_ == effect &&
                   ValidateTrace(decoded.trace_).ok(),

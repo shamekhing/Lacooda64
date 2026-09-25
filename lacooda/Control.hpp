@@ -12,7 +12,7 @@ namespace openjoey::lacooda64 {
 // -----------------------------------------------------------------------------
 // Control-register word
 //
-// Payload bits (60-bit selector; current valid values are 0..5):
+// Payload bits (60-bit selector; current valid values are 0..15):
 //
 //   payload bit (after removing the low tag with PayloadOf)
 //   59..0
@@ -25,6 +25,9 @@ namespace openjoey::lacooda64 {
 //   3..0 = WordTag::kControl
 //
 // 0 Turn, 1 Phase, 2 Step, 3 Chain, 4 Effect, 5 ProgramCounter.
+// 6 ResultCount, 7 ResultSuccess, 8 EventKind, 9 EventSubject,
+// 10 EventObject, 11 EventContext, 12 PendingDestination, 13 PendingSource0,
+// 14 PendingSource1, 15 PendingCancelled.
 // The payload selects a ControlState cell; it does not hold its value.
 // kCount is a size sentinel, not a usable selector.
 // -----------------------------------------------------------------------------
@@ -39,32 +42,33 @@ enum class ControlReg : Word {
   kChain,           // Current chain layer being resolved.
   kEffect,          // Current effect / frame identifier.
   kProgramCounter,  // Index into the trace of next instruction.
-  kCount,           // Sentinel: number of control registers.
+  kResultCount,     // Number of objects changed by the last MOVE.
+  kResultSuccess,   // Immediate boolean result of the last state mutation.
+  kEventKind,       // Numeric kind of the delivered event.
+  kEventSubject,
+  kEventObject,
+  kEventContext,
+  kPendingDestination,  // Mutable operand slots of a staged instruction.
+  kPendingSource0,
+  kPendingSource1,
+  kPendingCancelled,  // Immediate boolean: prevent this instruction.
+  kCount,             // Sentinel: number of control registers.
 };
 
 // Builds a Control-tagged operand selecting one of the control registers.
-[[nodiscard]] constexpr Operand Control(ControlReg r) noexcept {
-  return MakeTagged(WordTag::kControl, static_cast<Word>(r));
-}
+[[nodiscard]] constexpr Operand Control(ControlReg r) noexcept { return MakeTagged(WordTag::kControl, static_cast<Word>(r)); }
 
 // Decodes which control register a Control-tagged operand selects.
-[[nodiscard]] constexpr ControlReg ControlRegOf(Operand w) noexcept {
-  return static_cast<ControlReg>(PayloadOf(w));
-}
+[[nodiscard]] constexpr ControlReg ControlRegOf(Operand w) noexcept { return static_cast<ControlReg>(PayloadOf(w)); }
 
 // True when `w` is a Control operand.
-[[nodiscard]] constexpr bool IsControl(Operand w) noexcept {
-  return IsTag(w, WordTag::kControl);
-}
+[[nodiscard]] constexpr bool IsControl(Operand w) noexcept { return IsTag(w, WordTag::kControl); }
 
 // All control values are Words; ControlState is the fixed register file sized
 // to exactly ControlReg::kCount entries.
-using ControlState =
-    std::array<Word, static_cast<std::size_t>(ControlReg::kCount)>;
+using ControlState = std::array<Word, static_cast<std::size_t>(ControlReg::kCount)>;
 
 // Maps a ControlReg to its index within a ControlState array.
-[[nodiscard]] constexpr std::size_t ControlIndex(ControlReg r) noexcept {
-  return static_cast<std::size_t>(r);
-}
+[[nodiscard]] constexpr std::size_t ControlIndex(ControlReg r) noexcept { return static_cast<std::size_t>(r); }
 
 }  // namespace openjoey::lacooda64

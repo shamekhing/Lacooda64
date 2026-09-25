@@ -39,19 +39,15 @@ enum class RegisterBank : Word {
 
 inline constexpr Word kRegisterIndexBits = 8;
 inline constexpr Word kRegisterBankBits = 2;
-static_assert(kRegisterBankBits > 0 && kRegisterIndexBits > 0 &&
-                  kRegisterBankBits + kRegisterIndexBits <= kPayloadBits,
-              "Register fields must fit the payload");
-static_assert(kRegisterIndexBits < std::numeric_limits<std::size_t>::digits,
-              "Register count must fit size_t");
+static_assert(kRegisterBankBits > 0 && kRegisterIndexBits > 0 && kRegisterBankBits + kRegisterIndexBits <= kPayloadBits, "Register fields must fit the payload");
+static_assert(kRegisterIndexBits < std::numeric_limits<std::size_t>::digits, "Register count must fit size_t");
 inline constexpr std::size_t kRegisterCount = std::size_t{1} << kRegisterIndexBits;
 inline constexpr Word kRegisterIndexMask = (Word{1} << kRegisterIndexBits) - 1;
 inline constexpr Word kRegisterBankShift = 0;
 inline constexpr Word kRegisterIndexShift = kRegisterBankShift + kRegisterBankBits;
 inline constexpr Word kRegisterBankMask = (Word{1} << kRegisterBankBits) - 1;
 
-static_assert(static_cast<Word>(RegisterBank::kFlag) <= kRegisterBankMask,
-              "Bank width cannot represent all register banks");
+static_assert(static_cast<Word>(RegisterBank::kFlag) <= kRegisterBankMask, "Bank width cannot represent all register banks");
 
 struct RegisterFields {
   RegisterBank bank;
@@ -67,37 +63,18 @@ struct RegisterFields {
 }
 
 // Builds a Register-tagged operand from a bank and an 8-bit index.
-[[nodiscard]] constexpr Operand Reg(RegisterBank bank,
-                                    RegisterIndex index) noexcept {
-  return MakeTagged(
-      WordTag::kRegister,
-      ((static_cast<Word>(bank) & kRegisterBankMask) << kRegisterBankShift) |
-          ((index & kRegisterIndexMask) << kRegisterIndexShift));
-}
+[[nodiscard]] constexpr Operand Reg(RegisterBank bank, RegisterIndex index) noexcept { return MakeTagged(WordTag::kRegister, ((static_cast<Word>(bank) & kRegisterBankMask) << kRegisterBankShift) | ((index & kRegisterIndexMask) << kRegisterIndexShift)); }
 
 // Convenience aliases for the three register banks (V/A/F prefix notation).
-[[nodiscard]] constexpr Operand V(RegisterIndex i) noexcept {
-  return Reg(RegisterBank::kValue, i);
-}
-[[nodiscard]] constexpr Operand A(RegisterIndex i) noexcept {
-  return Reg(RegisterBank::kAddress, i);
-}
-[[nodiscard]] constexpr Operand F(RegisterIndex i) noexcept {
-  return Reg(RegisterBank::kFlag, i);
-}
+[[nodiscard]] constexpr Operand V(RegisterIndex i) noexcept { return Reg(RegisterBank::kValue, i); }
+[[nodiscard]] constexpr Operand A(RegisterIndex i) noexcept { return Reg(RegisterBank::kAddress, i); }
+[[nodiscard]] constexpr Operand F(RegisterIndex i) noexcept { return Reg(RegisterBank::kFlag, i); }
 
 // Decodes the register bank from a Register-tagged operand.
-[[nodiscard]] constexpr RegisterBank RegisterBankOf(Operand r) noexcept {
-  return static_cast<RegisterBank>((PayloadOf(r) >> kRegisterBankShift) &
-                                   kRegisterBankMask);
-}
+[[nodiscard]] constexpr RegisterBank RegisterBankOf(Operand r) noexcept { return static_cast<RegisterBank>((PayloadOf(r) >> kRegisterBankShift) & kRegisterBankMask); }
 // Decodes the 8-bit register index from a Register-tagged operand.
-[[nodiscard]] constexpr RegisterIndex RegisterIndexOf(Operand r) noexcept {
-  return (PayloadOf(r) >> kRegisterIndexShift) & kRegisterIndexMask;
-}
+[[nodiscard]] constexpr RegisterIndex RegisterIndexOf(Operand r) noexcept { return (PayloadOf(r) >> kRegisterIndexShift) & kRegisterIndexMask; }
 // True when `r` is a register of any bank.
-[[nodiscard]] constexpr bool IsRegister(Operand r) noexcept {
-  return IsTag(r, WordTag::kRegister);
-}
+[[nodiscard]] constexpr bool IsRegister(Operand r) noexcept { return IsTag(r, WordTag::kRegister); }
 
 }  // namespace openjoey::lacooda64

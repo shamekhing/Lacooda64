@@ -14,34 +14,54 @@ namespace openjoey::lacooda64 {
 // subcode/flags/cause/aux fields disambiguate the variant. The numeric values
 // must stay stable because they are the serialised wire format.
 enum class Opcode : Word {
-  kNop = 0,   // No operation (operand slots are kNone).
-  kSet,       // dst = src0  (typed move into a writable target).
-  kLoad,      // dst register = value of address src0.
-  kStore,     // address/control dst = src0 (writes state, e.g. LP).
-  kCopy,      // dst = src0 (same semantics as Set, distinct encoding).
-  kSwap,      // Exchange the values of dst and src0.
-  kSelect,    // Select the literal src0 address into address register dst.
-  kCount,     // Count cards matching src0 into value register dst.
-  kMove,      // Move/reposition cards from src0 into dst (subcode=method).
-  kSummon,    // Summon a card (subcode packs method + mode).
-  kPosition,  // Change card position (subcode = PositionOp).
-  kEquip,     // Attach/detach/transfer equipment (subcode = EquipOp).
-  kCounter,   // Add/remove/transfer counters on a card.
-  kControl,   // Take/give/swap/return control of a card (subcode=ControlOp).
-  kNegate,    // Negate an activation/effect/summon/attack.
-  kRestrict,  // Apply/clear/increment/decrement a play restriction.
-  kAlu,       // Integer ALU op (subcode = AluOp).
-  kCompare,   // Compare src0 vs src1 into a flag register (subcode=CompareOp).
-  kJump,      // Unconditional jump to src0 (an immediate PC).
-  kJumpIf,    // Conditional jump to src1 (immediate PC) if src0 holds.
-  kDamage,    // Apply damage (dst target, src0 amount).
-  kGainLp,    // Gain LP (dst target, src0 amount).
-  kPayLp,     // Pay LP cost (dst target, src0 amount).
-  kRandom,    // Produce a random value (subcode = RandomKind).
-  kEvent,     // Emit an engine event (subcode = EventKind).
-  kChain,     // Chain-flow control (subcode = ChainOp).
-  kHalt,      // Stop execution (operand slots are kNone).
+  kNop = 0,    // No operation (operand slots are kNone).
+  kSet,        // dst = src0  (typed move into a writable target).
+  kLoad,       // dst register = value of address src0.
+  kStore,      // address/control dst = src0 (writes state, e.g. LP).
+  kCopy,       // dst = src0 (same semantics as Set, distinct encoding).
+  kSwap,       // Exchange the values of dst and src0.
+  kSelect,     // Select the literal src0 address into address register dst.
+  kCount,      // Count cards matching src0 into value register dst.
+  kMove,       // Move/reposition cards from src0 into dst (subcode=method).
+  kSummon,     // Summon a card (subcode packs method + mode).
+  kPosition,   // Change card position (subcode = PositionOp).
+  kEquip,      // Attach/detach/transfer equipment (subcode = EquipOp).
+  kCounter,    // Add/remove/transfer counters on a card.
+  kControl,    // Take/give/swap/return control of a card (subcode=ControlOp).
+  kNegate,     // Negate an activation/effect/summon/attack.
+  kRestrict,   // Apply/clear/increment/decrement a play restriction.
+  kAlu,        // Integer ALU op (subcode = AluOp).
+  kCompare,    // Compare src0 vs src1 into a flag register (subcode=CompareOp).
+  kJump,       // Unconditional jump to src0 (an immediate PC).
+  kJumpIf,     // Conditional jump to src1 (immediate PC) if src0 holds.
+  kDamage,     // Apply damage (dst target, src0 amount).
+  kGainLp,     // Gain LP (dst target, src0 amount).
+  kPayLp,      // Pay LP cost (dst target, src0 amount).
+  kRandom,     // Produce a random value (subcode = RandomKind).
+  kEvent,      // Emit an engine event (subcode = EventKind).
+  kChain,      // Chain-flow control (subcode = ChainOp).
+  kHalt,       // Stop execution (operand slots are kNone).
+  kEnumerate,  // dst value register = snapshot of objects in src0 container.
+  kAt,         // dst address register = src0 collection element at src1 index.
+  kAppend,     // Append src0 address to collection in dst value register.
+  kLength,     // dst value register = size of src0 collection.
+  kAttribute,  // dst address register = src0 object with attribute src1.
+  kChoose,     // Pause for selection from src0 collection; src1 = player.
+  kSchedule,   // Capture frame at src0 PC, due at logical time src1; dst = id.
+  kSubscribe,  // Capture frame at src0 PC, invoked for event kind src1; dst = id.
+  kCancel,     // Remove registration identified by src0.
+  kModify,     // dst = modifier handle; src0 = attribute; src1 = value.
+  kHistory,    // Read history size or a field of a recorded event.
+  kStage,      // Capture one instruction at src0 PC before applying it.
+  kCommit,     // Apply or cancel the staged instruction identified by src0.
+  kUnmodify,   // Remove modifier identified by src0.
+
 };
+
+enum class HistoryField : Word { kCount = 0, kKind, kSubject, kObject, kContext };
+
+// Modifiers compose in registration order over the stored base value.
+enum class ModifierOp : Word { kAdd = 0, kSet, kMultiply, kDivide };
 
 // How cards move between locations (fits in a Move subcode).
 enum class MoveMethod : Word {

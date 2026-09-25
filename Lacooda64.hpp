@@ -33,7 +33,6 @@
 #include "lacooda/Address.hpp"
 #include "lacooda/Builder.hpp"
 #include "lacooda/Control.hpp"
-#include "lacooda/Example.hpp"
 #include "lacooda/Immediate.hpp"
 #include "lacooda/Instruction.hpp"
 #include "lacooda/Machine.hpp"

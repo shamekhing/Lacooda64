@@ -68,12 +68,8 @@ struct DecodeResult {
   DecodeError error_{DecodeError::kNone};
   Word word_offset_{0};  // Word index where the error occurred.
 
-  [[nodiscard]] constexpr bool ok() const noexcept {
-    return error_ == DecodeError::kNone;
-  }
-  [[nodiscard]] constexpr explicit operator bool() const noexcept {
-    return ok();
-  }
+  [[nodiscard]] constexpr bool ok() const noexcept { return error_ == DecodeError::kNone; }
+  [[nodiscard]] constexpr explicit operator bool() const noexcept { return ok(); }
 };
 
 // Decodes a flat Word stream, validating each instruction but not jump bounds.
@@ -105,8 +101,7 @@ using Bytecode = std::vector<std::uint8_t>;
 
 // Appends `w` to `out` as 8 little-endian bytes.
 inline void WriteU64Le(Bytecode& out, Word w) {
-  for (unsigned i = 0; i < 8; ++i)
-    out.push_back(static_cast<std::uint8_t>((w >> (i * 8)) & 0xFF));
+  for (unsigned i = 0; i < 8; ++i) out.push_back(static_cast<std::uint8_t>((w >> (i * 8)) & 0xFF));
 }
 
 // Encodes a Trace into a raw little-endian byte buffer (32 bytes per
