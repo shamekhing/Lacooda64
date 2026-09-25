@@ -127,8 +127,7 @@ std::string InstructionText(const Instruction& i) {
       break;
   }
   auto text = Name("Opcode", Sub(op)) + (args.empty() ? "" : " " + args);
-  if (FlagsOf(operation) || Sub(CauseOf(operation)) || AuxOf(operation))
-    text += " | flags=" + std::to_string(FlagsOf(operation)) + " cause=" + std::to_string(Sub(CauseOf(operation))) + " aux=" + std::to_string(AuxOf(operation));
+  if (FlagsOf(operation) || Sub(CauseOf(operation)) || AuxOf(operation)) text += " | flags=" + std::to_string(FlagsOf(operation)) + " cause=" + std::to_string(Sub(CauseOf(operation))) + " aux=" + std::to_string(AuxOf(operation));
   return text;
 }
 }  // namespace

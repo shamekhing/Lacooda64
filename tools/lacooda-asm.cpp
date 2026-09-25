@@ -16,8 +16,7 @@ int main(int argc, char** argv) {
   }
   std::string source{std::istreambuf_iterator<char>(file), {}};
   auto result = openjoey::lacooda64::assembly::AssembleModule(source);
-  for (const auto& error : result.diagnostics)
-    std::cerr << argv[1] << ':' << error.line << ": " << error.message << '\n';
+  for (const auto& error : result.diagnostics) std::cerr << argv[1] << ':' << error.line << ": " << error.message << '\n';
   if (!result.ok()) return 1;
   if (argc == 3) {
     std::ofstream out(argv[2]);

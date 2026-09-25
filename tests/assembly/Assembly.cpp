@@ -44,8 +44,7 @@ draw:
   auto metadata = Assemble("MOVE SEND, [0:1:0], [0:2:0], #1 | flags=4 cause=3 aux=9\nHALT");
   check(metadata.ok() && FlagsOf(Operation(metadata.trace[0])) == 4 && AuxOf(Operation(metadata.trace[0])) == 9, "checked metadata encoding");
   check(metadata.ok() && Assemble(Disassemble(metadata.trace)).trace == metadata.trace, "readable metadata roundtrip");
-  for (auto text : {"HALT | flags=4096", "HALT | cause=256", "HALT | aux=65536", "HALT | flags=1 flags=2", "HALT | unknown=0", "HALT |"})
-    check(!Assemble(text).ok(), "invalid metadata rejected");
+  for (auto text : {"HALT | flags=4096", "HALT | cause=256", "HALT | aux=65536", "HALT | flags=1 flags=2", "HALT | unknown=0", "HALT |"}) check(!Assemble(text).ok(), "invalid metadata rejected");
   auto module = AssembleModule(".program a\n0 HALT\n.end\n.program b\n0 HALT\n.end");
   check(module.ok() && module.programs.size() == 2, "independent program PCs");
   for (auto text : {".program a\nHALT", ".end", ".program a\n.program b\n.end", ".program a\nHALT\n.end\n.program a\nHALT\n.end", ".program a\nHALT\n.end\nHALT", "HALT\n.program a\nHALT\n.end"}) {

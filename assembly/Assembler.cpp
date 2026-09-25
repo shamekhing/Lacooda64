@@ -162,10 +162,14 @@ AssemblyResult Assemble(std::string_view source, const Symbols& supplied) {
           auto key = item.substr(0, eq);
           if (!seen.emplace(key, true).second) throw std::runtime_error("duplicate metadata");
           auto value = Unsigned(item.substr(eq + 1));
-          if (key == "flags" && value <= kFlagsMask) flags = value;
-          else if (key == "cause" && value <= Sub(CauseKind::kReplacement)) cause = value;
-          else if (key == "aux" && value <= kAuxMask) aux = value;
-          else throw std::runtime_error("unknown or out-of-range metadata");
+          if (key == "flags" && value <= kFlagsMask)
+            flags = value;
+          else if (key == "cause" && value <= Sub(CauseKind::kReplacement))
+            cause = value;
+          else if (key == "aux" && value <= kAuxMask)
+            aux = value;
+          else
+            throw std::runtime_error("unknown or out-of-range metadata");
         }
         if (seen.empty()) throw std::runtime_error("empty metadata");
       }
@@ -335,9 +339,15 @@ ModuleResult AssembleModule(std::string_view source, const Symbols& symbols) {
         result.diagnostics.push_back({lineno, "nested, duplicate or invalid program"});
         continue;
       }
-      name = next; body.clear(); start = lineno; active = true;
+      name = next;
+      body.clear();
+      start = lineno;
+      active = true;
     } else if (text == ".end") {
-      if (!active) { result.diagnostics.push_back({lineno, "unexpected .end"}); continue; }
+      if (!active) {
+        result.diagnostics.push_back({lineno, "unexpected .end"});
+        continue;
+      }
       auto program = Assemble(body, symbols);
       for (auto diagnostic : program.diagnostics) {
         diagnostic.line += start;
@@ -346,10 +356,13 @@ ModuleResult AssembleModule(std::string_view source, const Symbols& symbols) {
       }
       result.programs.push_back({name, std::move(program.trace)});
       active = false;
-    } else if (active) body += line + '\n';
+    } else if (active)
+      body += line + '\n';
     else if (!text.empty()) {
-      if (module) result.diagnostics.push_back({lineno, "instruction outside a program"});
-      else plain = true;
+      if (module)
+        result.diagnostics.push_back({lineno, "instruction outside a program"});
+      else
+        plain = true;
     }
   }
   if (active) result.diagnostics.push_back({start, "program is missing .end"});
