@@ -17,3 +17,12 @@ if(LACOODA64_BUILD_TESTS)
     target_link_libraries(lacooda64_encoding_tests PRIVATE Lacooda64::Lacooda64)
     add_test(NAME lacooda64_encoding COMMAND lacooda64_encoding_tests)
 endif()
+
+# Independent layers; neither introduces a dependency into the core.
+add_subdirectory(runtime)
+
+if(LACOODA64_BUILD_TESTS)
+    add_executable(lacooda64_runtime_tests tests/runtime/Execution.cpp)
+    target_link_libraries(lacooda64_runtime_tests PRIVATE Lacooda64::Runtime)
+    add_test(NAME lacooda64_runtime COMMAND lacooda64_runtime_tests)
+endif()
