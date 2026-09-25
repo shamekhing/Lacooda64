@@ -16,12 +16,7 @@ struct PendingOperation {
 struct PendingParticipant {
   std::shared_ptr<PendingOperation> operation;
   bool completed{};
-  void Complete(bool success) {
-    if (completed) return;
-    completed = true;
-    if (operation->participants) --operation->participants;
-    if (!success) operation->failed = true;
-  }
+  void Complete(bool success);
 };
 class Replacements {
  public:

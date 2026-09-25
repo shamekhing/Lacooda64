@@ -10,7 +10,7 @@ namespace openjoey::lacooda64::assembly {
 struct AssemblyResult {
   Trace trace;
   std::vector<Diagnostic> diagnostics;
-  bool ok() const { return diagnostics.empty(); }
+  bool ok() const;
 };
 // Two-pass, checked text assembler. Failure never returns an executable prefix.
 AssemblyResult Assemble(std::string_view source, const Symbols& symbols = {});
@@ -21,7 +21,7 @@ struct Program {
 struct ModuleResult {
   std::vector<Program> programs;
   std::vector<Diagnostic> diagnostics;
-  bool ok() const { return diagnostics.empty(); }
+  bool ok() const;
 };
 // Each .program NAME / .end block has an independent PC and symbol scope.
 // Plain single-program text is accepted as the unnamed program.

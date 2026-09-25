@@ -1,4 +1,4 @@
-#include "Runtime.hpp"
+#include "runtime/Runtime.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -378,4 +378,5 @@ std::vector<Frame> Runtime::TakeReady() {
   ready_.clear();
   return ready;
 }
+Runtime::Runtime(StateAccess& state, std::mt19937& rng) : state_(state), rng_(rng) {}
 }  // namespace openjoey::lacooda64::runtime

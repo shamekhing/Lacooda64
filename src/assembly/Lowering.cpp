@@ -1,4 +1,4 @@
-#include "Lowering.hpp"
+#include "assembly/Lowering.hpp"
 
 #include <stdexcept>
 namespace openjoey::lacooda64::assembly {
@@ -98,4 +98,5 @@ Trace Lowering::Finish() {
   if (!ValidateTrace(code_)) throw std::runtime_error("invalid lowered program");
   return code_;
 }
+Word Lowering::Here() const { return code_.size(); }
 }  // namespace openjoey::lacooda64::assembly

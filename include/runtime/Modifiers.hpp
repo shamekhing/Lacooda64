@@ -23,11 +23,11 @@ class Modifiers {
 };
 class ModifiedState final : public StateAccess {
  public:
-  ModifiedState(StateAccess& base, const Modifiers& modifiers) : base_(base), modifiers_(modifiers) {}
-  bool Read(Address field, Word& value) const override { return modifiers_.Read(base_, field, value); }
-  bool Write(Address field, Word value) override { return base_.Write(field, value); }
-  bool Members(Address container, std::vector<Address>& result) const override { return base_.Members(container, result); }
-  bool Relocate(Address object, Address destination, Address& moved) override { return base_.Relocate(object, destination, moved); }
+  ModifiedState(StateAccess& base, const Modifiers& modifiers);
+  bool Read(Address field, Word& value) const override;
+  bool Write(Address field, Word value) override;
+  bool Members(Address container, std::vector<Address>& result) const override;
+  bool Relocate(Address object, Address destination, Address& moved) override;
 
  private:
   StateAccess& base_;

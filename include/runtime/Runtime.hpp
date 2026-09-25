@@ -11,7 +11,7 @@ class Runtime {
  public:
   // The caller supplies the duel's single RNG; Lacooda neither reseeds nor
   // creates a competing random stream. Copy the RNG when snapshotting a duel.
-  Runtime(StateAccess& state, std::mt19937& rng) : state_(state), rng_(rng) {}
+  Runtime(StateAccess& state, std::mt19937& rng);
   Result Run(Frame& frame, Word budget = 100000);
   // Delivery queues captured frames; callers run them with their own budget.
   void Deliver(const Event& event);

@@ -1,10 +1,9 @@
-#pragma once
+#include "Numeric.hpp"
+
 #include <algorithm>
 
-#include "lacooda/Immediate.hpp"
-#include "lacooda/Opcode.hpp"
 namespace openjoey::lacooda64::runtime {
-inline bool Arithmetic(AluOp op, SignedWord a, SignedWord b, SignedWord& out) {
+bool Arithmetic(AluOp op, SignedWord a, SignedWord b, SignedWord& out) {
   switch (op) {
     case AluOp::kAdd:
       out = a + b;
@@ -45,5 +44,4 @@ inline bool Arithmetic(AluOp op, SignedWord a, SignedWord b, SignedWord& out) {
   }
   return out >= kImmediateMin && out <= kImmediateMax;
 }
-
 }  // namespace openjoey::lacooda64::runtime

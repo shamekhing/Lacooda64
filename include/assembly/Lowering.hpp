@@ -18,7 +18,7 @@ class Lowering {
   Operand AddressRegister();
   Operand Flag();
   Word Emit(const Instruction& instruction);
-  Word Here() const { return code_.size(); }
+  Word Here() const;
   void PatchJump(Word instruction, Word target);
   Operand Filter(Operand container, const std::vector<FieldCondition>& conditions);
   Operand DrawToSize(Operand hand, Operand deck, Operand size);

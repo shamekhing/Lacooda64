@@ -1,8 +1,8 @@
-#include "Disassembler.hpp"
+#include "assembly/Disassembler.hpp"
 
 #include <sstream>
 
-#include "Assembler.hpp"
+#include "assembly/Assembler.hpp"
 #include "lacooda/Builder.hpp"
 
 namespace openjoey::lacooda64::assembly {

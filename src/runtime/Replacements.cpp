@@ -1,4 +1,4 @@
-#include "Replacements.hpp"
+#include "runtime/Replacements.hpp"
 
 #include <stdexcept>
 namespace openjoey::lacooda64::runtime {
@@ -15,4 +15,10 @@ std::shared_ptr<PendingOperation> Replacements::Find(Word id) const {
   return it == entries_.end() ? nullptr : it->second;
 }
 void Replacements::Erase(Word id) { entries_.erase(id); }
+void PendingParticipant::Complete(bool success) {
+  if (completed) return;
+  completed = true;
+  if (operation->participants) --operation->participants;
+  if (!success) operation->failed = true;
+}
 }  // namespace openjoey::lacooda64::runtime

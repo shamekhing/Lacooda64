@@ -1,4 +1,4 @@
-#include "Modifiers.hpp"
+#include "runtime/Modifiers.hpp"
 
 #include <stdexcept>
 
@@ -23,4 +23,9 @@ bool Modifiers::Read(const StateAccess& state, Address field, Word& value) const
   }
   return true;
 }
+ModifiedState::ModifiedState(StateAccess& base, const Modifiers& modifiers) : base_(base), modifiers_(modifiers) {}
+bool ModifiedState::Read(Address field, Word& value) const { return modifiers_.Read(base_, field, value); }
+bool ModifiedState::Write(Address field, Word value) { return base_.Write(field, value); }
+bool ModifiedState::Members(Address container, std::vector<Address>& result) const { return base_.Members(container, result); }
+bool ModifiedState::Relocate(Address object, Address destination, Address& moved) { return base_.Relocate(object, destination, moved); }
 }  // namespace openjoey::lacooda64::runtime

@@ -1,4 +1,4 @@
-#include "Assembler.hpp"
+#include "assembly/Assembler.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -374,4 +374,6 @@ ModuleResult AssembleModule(std::string_view source, const Symbols& symbols) {
   if (!result.ok()) result.programs.clear();
   return result;
 }
+bool AssemblyResult::ok() const { return diagnostics.empty(); }
+bool ModuleResult::ok() const { return diagnostics.empty(); }
 }  // namespace openjoey::lacooda64::assembly

@@ -7,13 +7,7 @@ namespace openjoey::lacooda64::runtime {
 // Handles are runtime values, not literals embedded in instruction streams.
 struct Collections {
   std::vector<std::vector<Address>> entries;
-  Word Add(std::vector<Address> values) {
-    entries.push_back(std::move(values));
-    return MakeTagged(WordTag::kCollection, entries.size() - 1);
-  }
-  std::vector<Address>* Get(Word handle) {
-    if (!IsTag(handle, WordTag::kCollection) || PayloadOf(handle) >= entries.size()) return nullptr;
-    return &entries[PayloadOf(handle)];
-  }
+  Word Add(std::vector<Address> values);
+  std::vector<Address>* Get(Word handle);
 };
 }  // namespace openjoey::lacooda64::runtime
