@@ -166,9 +166,6 @@ instruction: program counters are **zero-based instruction indices**, not word
 or byte offsets. The program above constructs and serializes the effect; an
 interpreter would carry out the count and draw.
 
-[Example.hpp](lacooda/Example.hpp) provides these instruction building blocks as
-`example::kCountMonsters`, `kCompareThree`, `kJumpToEffect`, `kDrawTwo`, and `kStop`.
-
 ## Work with operands
 
 All examples below assume `#include "Lacooda64.hpp"` and
@@ -490,7 +487,7 @@ migration.
 | `WordTag::kControl` | `0x4` | Control-register selector |
 | `WordTag::kOperation` | `0x5` | Opcode and instruction metadata |
 | `WordTag::kLabel` | `0x6` | Reserved for symbolic labels/relocations |
-| `WordTag::kReserved7` | `0x7` | Reserved |
+| `WordTag::kCollection` | `0x7` | Invocation-local runtime collection handle |
 
 `MakeTagged`, `TagOf`, `PayloadOf`, and `IsTag` construct and inspect this outer
 layout. Operation words belong in instruction slot 0. Label and reserved tags
@@ -560,7 +557,7 @@ static_assert(Imm(0) != kNone);  // Same zero payload, different tags.
 
 ### Control word
 
-**Tag:** `WordTag::kControl` · **Payload:** a 60-bit selector, currently 0..5
+**Tag:** `WordTag::kControl` · **Payload:** a 60-bit selector, currently 0..15
 
 ```text
  59..0
@@ -670,9 +667,9 @@ before packing when they originate outside the host's known schema.
 
 Validation checks supported address levels and register banks, but accepts
 nonzero reserved bits in address/register/operation words. It does not enforce
-zero deeper fields on shallow addresses. Most subcode ranges, flag combinations,
-and otherwise-unused operand slots are also unconstrained. ALU arity/subcodes
-and Chain subcodes have explicit checks; Event checks only for a nonzero subcode.
+zero deeper fields on shallow addresses. Enum method subcodes are range-checked. Flag combinations and many
+otherwise-unused operand slots remain unconstrained. New primitive operand shapes
+and registration/branch target bounds are checked explicitly.
 
 `IsNone` tests the tag; `ValidOperand` additionally requires a zero payload.
 Other classification predicates likewise do not replace full validation.
@@ -719,7 +716,7 @@ module includes its own dependencies and can also be included directly.
 | --- | --- | --- |
 | Representation | [Word](lacooda/Word.hpp), [Address](lacooda/Address.hpp), [Register](lacooda/Register.hpp), [Immediate](lacooda/Immediate.hpp), [Control](lacooda/Control.hpp) | Tags, layouts, constructors, and accessors |
 | Instructions | [Opcode](lacooda/Opcode.hpp), [Operation](lacooda/Operation.hpp), [Instruction](lacooda/Instruction.hpp) | Opcode enums, operation fields, and the four-word array |
-| Construction | [Builder](lacooda/Builder.hpp), [Example](lacooda/Example.hpp) | Builder signatures and worked instruction constants |
+| Construction | [Builder](lacooda/Builder.hpp) | Instruction builder signatures |
 | Checking | [Operand](lacooda/Operand.hpp), [Validate](lacooda/Validate.hpp) | Operand categories and exact validation rules |
 | Storage | [Machine](lacooda/Machine.hpp) | Register arrays, encode/decode, and byte serialization |
 
@@ -739,3 +736,30 @@ boundaries, signed immediates, and trace validation/serialization.
 ## License
 
 See [LICENSE](LICENSE) for the GNU General Public License, version 3.
+
+## Repository layers
+
+| Directory | Responsibility | Status |
+| --- | --- | --- |
+| `lacooda/` | ISA, builders, validation and serialization | Implemented |
+| `runtime/` | Numeric instruction execution, decisions, scheduling and modifiers | Implemented subset; see coverage |
+| `assembly/` | Assembler, disassembler and numeric lowering helpers | Implemented |
+| `tools/` | Assembler CLI and source-to-native converter | Implemented |
+| `data/` | Source effects, native assembly and numeric bindings | All 264 blocks converted |
+| `tests/core/` | Encoding and validation checks | Implemented |
+| `tests/runtime/`, `tests/assembly/`, `tests/effects/` | Execution, parsing and representative effect checks | Implemented |
+
+CMake targets are `Lacooda64::Core`, `Lacooda64::Runtime`, and
+`Lacooda64::Assembly`. The existing `Lacooda64::Lacooda64` target still names the
+core. Runtime and assembly depend independently on core. The umbrella header
+includes only core headers.
+
+The runtime uses numeric attribute/container storage through `StateAccess` and a
+caller-supplied RNG. It executes primitive instructions itself; storage does not
+interpret effect programs. No second card vector is required.
+
+Read [execution contracts and remaining gaps](runtime/README.md) and
+[assembly syntax and lowering](assembly/README.md). The complete
+`data/effects.txt` corpus is **fully converted to native assembly**; full duel
+execution still requires the remaining runtime/rule support. See the
+[corpus guide](data/README.md) for regeneration, bindings and source diagnostics.

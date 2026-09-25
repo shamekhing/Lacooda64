@@ -67,3 +67,7 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# Python converter caches
+__pycache__/
+*.py[cod]
