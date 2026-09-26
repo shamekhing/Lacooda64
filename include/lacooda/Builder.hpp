@@ -57,6 +57,9 @@ namespace openjoey::lacooda64 {
 // Counter: add/remove/transfer counters on `target`.
 [[nodiscard]] constexpr Instruction Counter(Operand target, Operand amount, CounterOp method, CauseKind cause = CauseKind::kCardEffect, Word flags = kFlagNone) noexcept { return MakeInstruction(Op(Opcode::kCounter, Sub(method), flags, cause), target, amount); }
 
+// Transfer counters between explicit attributes. Omit amount to transfer all.
+[[nodiscard]] constexpr Instruction TransferCounters(Operand destination, Operand source, Operand amount = kNone) noexcept { return MakeInstruction(Op(Opcode::kCounter, Sub(CounterOp::kTransfer)), destination, source, amount); }
+
 // ChangeControl: take/give/swap/return control of `card` (subcode = ControlOp).
 [[nodiscard]] constexpr Instruction ChangeControl(Operand destination, Operand card, ControlOp method, CauseKind cause = CauseKind::kCardEffect, Word flags = kFlagNone) noexcept { return MakeInstruction(Op(Opcode::kControl, Sub(method), flags, cause), destination, card); }
 

@@ -238,13 +238,20 @@ AssemblyResult Assemble(std::string_view source, const Symbols& supplied) {
             d = operand(1);
             break;
           case Opcode::kEquip:
-          case Opcode::kCounter:
           case Opcode::kControl:
           case Opcode::kRestrict:
             arity(3, 3);
             sub = Enum(op == Opcode::kEquip ? "EquipOp" : op == Opcode::kCounter ? "CounterOp" : op == Opcode::kControl ? "ControlOp" : "RestrictOp", args[0]);
             d = operand(1);
             s = operand(2);
+            break;
+          case Opcode::kCounter:
+            arity(3, 4);
+            sub = Enum("CounterOp", args[0]);
+            if (args.size() == 4 && sub != Sub(CounterOp::kTransfer)) throw std::runtime_error("only COUNTER TRANSFER takes a source and amount");
+            d = operand(1);
+            s = operand(2);
+            if (args.size() == 4) t = operand(3);
             break;
           case Opcode::kRandom:
             arity(3, 4);
@@ -264,7 +271,7 @@ AssemblyResult Assemble(std::string_view source, const Symbols& supplied) {
             arity(1, 3);
             sub = Enum("ChainOp", args[0]);
             if (args.size() > 1) d = operand(1);
-            if (args.size() > 2) s = operand(2);
+            if (args.size() > 2) s = sub == Sub(ChainOp::kPush) && labels.contains(args[2]) ? target(args[2]) : operand(2);
             break;
           case Opcode::kAt:
           case Opcode::kAttribute:

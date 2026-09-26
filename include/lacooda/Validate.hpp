@@ -150,7 +150,8 @@ namespace openjoey::lacooda64 {
       return IsAddressSource(Dst(i)) && IsAddressSource(Src0(i));
 
     case Opcode::kCounter:
-      return IsAddressSource(Dst(i)) && !IsNone(Src0(i));
+      if (sub == Sub(CounterOp::kTransfer)) return IsAddressSource(Dst(i)) && IsAddressSource(Src0(i)) && (IsNone(Src1(i)) || IsValueSource(Src1(i)));
+      return IsAddressSource(Dst(i)) && IsValueSource(Src0(i)) && IsNone(Src1(i));
 
     case Opcode::kRestrict:
       // dst must name an attribute, not a whole object.

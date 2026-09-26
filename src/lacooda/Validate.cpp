@@ -11,6 +11,10 @@ ValidationResult ValidateTrace(const Trace& trace) noexcept {
       const SignedWord t = ImmediateValue(Src0(i));
       if (t < 0 || static_cast<Word>(t) >= trace.size()) return {ValidationError::kJumpOutOfRange, pc};
     }
+    if (op == Opcode::kChain && SubcodeOf(Operation(i)) == Sub(ChainOp::kPush) && IsImmediate(Src0(i))) {
+      const auto target = ImmediateValue(Src0(i));
+      if (target < 0 || static_cast<Word>(target) >= trace.size()) return {ValidationError::kJumpOutOfRange, pc};
+    }
     if (op == Opcode::kJumpIf) {
       const SignedWord t = ImmediateValue(Src1(i));
       if (t < 0 || static_cast<Word>(t) >= trace.size()) return {ValidationError::kJumpOutOfRange, pc};

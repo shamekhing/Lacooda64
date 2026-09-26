@@ -849,7 +849,8 @@ Frame frame({Set(V(0), Imm(2)), Alu(V(1), V(0), Imm(3), AluOp::kAdd), Halt()});
 auto result = runtime.Run(frame, 1000);
 ```
 
-`StateAccess` exposes existing storage through Read, Write, Members and Relocate.
+`StateAccess` exposes existing storage through Read, Write, Members, Relocate,
+Create and Exchange.
 It does not execute effects. Property/zone IDs are supplied by the application;
 no second card vector is required. State values are tagged words. Members must
 return deterministic ordering; Relocate returns the new address. Storage must
@@ -878,7 +879,14 @@ opcodes are reported explicitly; they are never treated as successful no-ops.
 | DAMAGE / GAIN_LP / PAY_LP | Subtract/add/pay a nonnegative amount at an explicit numeric attribute; payment prechecks available value |
 | RANDOM | Copy a recorded result without RNG use, or generate `[0,bound)` when the result operand is NONE |
 | EVENT | Record/deliver the encoded event and queue matching subscriptions |
-| SUMMON / POSITION / EQUIP / COUNTER / CONTROL / NEGATE / RESTRICT / CHAIN | Valid encodings exist; runtime returns `kUnsupported` |
+| SUMMON | Relocate an instance or create a token prototype; set position/controller and emit SUMMONED |
+| POSITION | Update canonical position, face-up and defense flags together |
+| EQUIP | Attach, detach or transfer an equipment reference |
+| COUNTER | Checked nonnegative set/add/remove/transfer, including an optional transfer amount |
+| CONTROL | Move controller membership or exchange two occupied locations; update controller fields |
+| NEGATE | Mark a bound flag, cancel a matching staged summon or skip a matching chain link |
+| RESTRICT | Apply, clear, increment or decrement a numeric restriction property |
+| CHAIN | Manage captured instruction bodies and resolve them in stack order |
 
 The remaining primitives have these signatures:
 
@@ -950,7 +958,8 @@ resolve those identities consistently. A lifetime is explicit code that schedule
 or subscribes a captured UNMODIFY operation. Automatic continuous-condition
 reevaluation and a game's modifier-layer ordering still require rules programs.
 
-STAGE captures one MOVE, attribute STORE, DAMAGE, GAIN_LP or PAY_LP instruction.
+STAGE captures one MOVE, attribute STORE, DAMAGE, GAIN_LP, PAY_LP, SUMMON,
+POSITION, EQUIP, COUNTER, CONTROL, NEGATE or RESTRICT instruction.
 Handlers can use STORE to edit `CONTROL.PENDING_DESTINATION`, `PENDING_SOURCE0`,
 `PENDING_SOURCE1` or `PENDING_CANCELLED` (immediate zero/one). COMMIT waits for all
 handlers, validates the amended instruction and applies it at most once.
@@ -960,6 +969,130 @@ A failed handler prevents commit. Subscription order determines handler order.
 frames from TakeReady before resuming the caller. They may themselves await input.
 Staged control-register writes and arbitrary staged programs are rejected.
 
+### Card-state bindings and operation contracts
+
+Construct `Runtime(storage, rng, layout)` with a `runtime::StateLayout`. The default
+layout leaves every attribute unbound (zero). Bind these IDs to your storage schema
+or generated binding manifest; they are not new ISA constants or card names.
+Required missing/out-of-range bindings cause `kFault`, not `kUnsupported`.
+
+| StateLayout member | Stored value / use |
+| --- | --- |
+| `position` | Immediate position enum; required by POSITION and SUMMON |
+| `face_up`, `defense_position` | Immediate Boolean flags, updated with position |
+| `controller` | Immediate player index; required by SUMMON and CONTROL |
+| `owner` | Immediate original player index; required by token creation and CONTROL RETURN |
+| `equip_target` | Whole-card address, or immediate zero/NONE when unattached |
+| `last_summoned` | Optional player attribute receiving the summoned card address |
+| `negated` | Four optional attributes indexed by NegateOp: activation, effect, summon, attack; set to immediate one |
+| `face_up_attack`, `face_up_defense`, `face_down_defense`, `face_down_attack` | Distinct immediate enum values; defaults 1, 2, 3, 4 |
+
+Position's three attribute IDs must be distinct. Use separate storage fields for
+unrelated bindings. POSITION ATTACK/DEFENSE changes only the stance; FACE_UP/FACE_DOWN
+changes only visibility; TOGGLE changes stance. Full position modes replace both.
+Partial changes require a valid existing canonical position.
+
+SUMMON takes a destination slot (or a whole-card address identifying that slot).
+Non-token methods take an existing card and preserve its identity. TOKEN takes a
+nonnegative numeric prototype ID. Default mode means face-up attack; SET means
+face-down defense. FLIP requires a face-down card at the specified location and
+uses face-up attack. Successful summons update position and controller, optionally
+record last_summoned, update a source address register, and emit SUMMONED.
+Normal/tribute/special/ritual/fusion and other method labels identify the action;
+material selection, payment, timing and legality must be expressed before it by
+instructions/rules programs. They are not inferred from card text.
+
+EQUIP takes the target as destination and the equipment as source. ATTACH requires
+an unattached equipment, TRANSFER an attached one, and DETACH the matching current
+target. Transfer emits UNEQUIPPED then EQUIPPED. This changes the reference; any
+stat contribution or lifetime is a separate MODIFY/UNMODIFY sequence.
+
+COUNTER takes an explicit numeric attribute. A whole-card operand instead selects
+the attribute through the instruction's numeric `aux`. PLACE/REMOVE/SET take a
+nonnegative amount. `COUNTER TRANSFER, destination, source, amount` transfers the
+specified quantity; omitted amount transfers all. Underflow/overflow is checked
+before writes. Transfers to the same identity and attribute do nothing and report
+zero transferred. The C++ builder is `TransferCounters(dst, src, amount = kNone)`.
+RESTRICT operates on an explicit numeric attribute with APPLY/CLEAR/INCREMENT/
+DECREMENT. Rule programs must consult that property where the restriction applies;
+writing it does not automatically implement arbitrary game prohibitions.
+
+CONTROL TAKE/GIVE accepts a player, zone or slot destination. A player selects the
+source's encoded zone on that player. RETURN also verifies that destination player
+matches the owner field. SWAP exchanges two existing occupied card locations.
+Controller fields and source address registers follow the new locations; SWAP
+also updates a destination address register. Events report the changed cards.
+Use current location addresses for operations whose meaning depends on coordinates
+(FLIP, SWAP and player-only CONTROL); identity-based attribute references may retain
+older coordinates when the adapter supports them.
+
+NEGATE on an attribute sets it to one. On an object it uses the corresponding
+layout flag when bound. Activation/effect negation also marks the newest unresolved
+matching chain link; summon negation inside a replacement handler cancels the
+matching pending SUMMON. A matching chain/pending operation can be negated without
+a bound flag. If neither a writable binding nor a matching operation exists, the
+instruction faults. Attack negation records a flag and ATTACK_CANCELED event;
+battle rules must consume that state. Reset negation flags explicitly when their
+lifetime ends.
+
+Storage implements only data primitives:
+
+- `Create(prototype, destination, created)` allocates a fresh instance at the
+  requested location and returns its whole-card address. Initialize its properties
+  from the numeric prototype. Failure must not allocate an instance.
+- `Exchange(first, second, first_moved, second_moved)` exchanges occupied locations
+  atomically, preserving both identities; failure leaves both locations unchanged.
+- Default Create/Exchange implementations return false. Existing adapters still
+  compile; token summons and swaps require overriding these two methods.
+- Relocate must resolve the instance, honor the destination and return its actual
+  new address, including a request for its current location. A zone destination
+  uses the adapter's deterministic slot policy. Missing identities must fail.
+
+Multi-field instructions are not transactions: a later storage write failure can
+leave an applied prefix. There is no automatic rollback. Bind valid writable fields
+and provide reliable storage operations, or add transactions at the embedding
+boundary. ResultSuccess reports completion; ResultCount reports affected objects
+(or the counter amount). Events are emitted after the relevant successful mutation.
+
+### Executable chains
+
+A Runtime owns one chain stack. The protocol is BEGIN, PUSH (one or more), optional
+PASS, BEGIN_RESOLVE, RESOLVE_LINK/POP for each link, END_RESOLVE, END. Invalid
+transitions fault. PASS counts passes; eligibility and the required number of
+passes are explicit rules, not inferred by the stack.
+
+```text
+CHAIN BEGIN
+CHAIN PUSH, [0:1:0:1:0], body
+CHAIN BEGIN_RESOLVE
+CHAIN RESOLVE_LINK
+CHAIN POP
+CHAIN END_RESOLVE
+CHAIN END
+HALT
+body:
+STORE [0:50], #2
+HALT
+```
+
+PUSH captures the frame's registers and collections and starts its body at the
+specified PC in the same program. A label is accepted by the assembler; literal
+PCs are validated, and register PCs are checked at execution. PUSH without an entry
+creates a protocol-only link with no body. The top link resolves first. A negated
+link skips its body. POP requires successful resolution and does not execute it.
+Bodies cannot issue CHAIN operations against their executing stack.
+
+RESOLVE_LINK includes body instructions in the caller's execution budget. Allow
+at least two steps per call to make progress inside a body (one for RESOLVE_LINK,
+one for the body). Step-limit and input suspensions resume the captured body;
+answer the parent frame's decision through `Frame::Answer` as usual. Replacement
+handlers are drained through TakeReady as for other operations. Body register
+changes remain local, while storage changes and events are shared. ACTIVATE is
+emitted on PUSH, RESOLVE_BEGIN on BEGIN_RESOLVE, and RESOLVE_END per resolved link
+with context zero for negation or one for execution. CONTROL.CHAIN reflects the
+stack depth after chain instructions. A full duel snapshot must include chain
+frames as well as storage, RNG, scheduler and pending replacements.
+
 ### Scope and remaining work
 
 Tests cover scalar execution, choices, indirect movement, deterministic draws,
@@ -967,13 +1100,12 @@ schedules, events, modifiers, history, replacement cancellation/redirection and
 error cases. Effect-level tests cover a filtered target query and Mirage of
 Nightmare's draw/deferred-discard body. They do not prove complete card rules.
 
-Original SUMMON, POSITION, EQUIP, COUNTER, CONTROL, NEGATE, RESTRICT and CHAIN
-instructions are encodable but their runtime semantics remain unimplemented and
-return `kUnsupported`. SWAP currently supports one register bank; ordered JUMPIF
+SUMMON, POSITION, EQUIP, COUNTER, CONTROL, NEGATE, RESTRICT and CHAIN execute
+with the contracts below. SWAP currently supports one register bank; ordered JUMPIF
 variants require COMPARE followed by a boolean branch.
 
 The full corpus is converted; see [bindings and source gaps](#effect-corpus-and-bindings).
-Activation/summon legality, battle/chain protocol,
+Activation/summon legality, battle rules and chain response eligibility,
 visibility, continuous rules, replacement arbitration and transactional undo are
 still outstanding. Suspended frames/registrations/collections/replacements do not
 yet have a binary snapshot format. Copying a frame is not a full duel snapshot,
@@ -1017,10 +1149,11 @@ comment. The `PC Instruction Meaning` header is optional.
 | MOVE | method, destination, source, optional count |
 | SUMMON | method, mode, destination, source |
 | POSITION/NEGATE | method, target |
-| EQUIP/COUNTER/CONTROL/RESTRICT | method, dst, source |
+| EQUIP/CONTROL/RESTRICT | method, dst, source |
+| COUNTER | method, dst, source; TRANSFER additionally accepts an optional amount |
 | RANDOM | kind, dst, recorded result or NONE, optional bound |
 | EVENT | kind, optional subject, object, context |
-| CHAIN | method, optional subject, context |
+| CHAIN | method, optional subject, optional body entry (PUSH accepts a label, immediate PC or numeric register) |
 | NOP/HALT | none |
 
 See [runtime contracts](#runtime-execution) for new primitive syntax.
@@ -1210,9 +1343,10 @@ program**, including wrong-player phase rejection, the captured draw count,
 seeded discard without replacement and one-shot cancellation.
 
 This is complete **source-block conversion**, not complete duel execution.
-`SUMMON` is encoded but still unsupported by the current runtime. Rule-property
-enforcement, source-event production, complete continuous-rule handling and
-activation/battle/chain rules remain engine work. See the
+`SUMMON` executes with the configured storage bindings. Token summons also need
+a storage prototype allocator. Rule-property enforcement, source-event production,
+complete continuous-rule handling and activation/battle/chain eligibility rules
+still need rules programs and integration. See the
 [runtime coverage](#runtime-execution) before executing other programs.
 
 ## Command-line tools
@@ -1374,7 +1508,7 @@ preserving instance identity. Failed storage operations are not automatically
 transactional, and cost prechecks do not guarantee rollback after a later storage
 failure.
 
-`ModifiedState` forwards writes, membership and relocation to underlying storage
+`ModifiedState` forwards writes, membership, relocation, creation and exchange to underlying storage
 and applies modifiers on reads. `ResolveAddress`, `ReadOperand` and `WriteOperand`
 are low-level runtime helpers for the same addressing and register rules used by
 the interpreter. `Decision` contains PC, player, candidate count and optional

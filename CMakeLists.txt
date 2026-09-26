@@ -16,6 +16,9 @@ target_include_directories(Lacooda64 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include
 
 # Runtime and assembly are independent consumers of the core.
 add_library(Lacooda64Runtime STATIC
+    src/runtime/StateAccess.cpp
+    src/runtime/Operations.cpp
+    src/runtime/Chain.cpp
     src/runtime/Collections.cpp
     src/runtime/Frame.cpp
     src/runtime/Modifiers.cpp
@@ -51,6 +54,7 @@ if(LACOODA64_BUILD_TESTS)
     endfunction()
     lacooda_test(encoding tests/core/Encoding.cpp Lacooda64::Core)
     lacooda_test(runtime tests/runtime/Execution.cpp Lacooda64::Runtime)
+    lacooda_test(operations tests/runtime/Operations.cpp Lacooda64::Runtime Lacooda64::Assembly)
     lacooda_test(assembly tests/assembly/Assembly.cpp Lacooda64::Assembly)
     lacooda_test(effects tests/effects/Effects.cpp Lacooda64::Assembly Lacooda64::Runtime)
     add_executable(lacooda64_corpus_tests tests/effects/Corpus.cpp)

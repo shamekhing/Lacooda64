@@ -28,6 +28,8 @@ class ModifiedState final : public StateAccess {
   bool Write(Address field, Word value) override;
   bool Members(Address container, std::vector<Address>& result) const override;
   bool Relocate(Address object, Address destination, Address& moved) override;
+  bool Create(Word prototype, Address destination, Address& created) override;
+  bool Exchange(Address first, Address second, Address& first_moved, Address& second_moved) override;
 
  private:
   StateAccess& base_;

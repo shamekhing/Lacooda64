@@ -76,7 +76,7 @@ int main() {
   Frame bad_method({MakeInstruction(Op(Opcode::kMove, 999), Zone(0, 2), Zone(0, 1)), Halt()});
   check(runtime.Run(bad_method).status == Status::kInvalidProgram && state.zones == before, "invalid move method rejected before mutation");
   Frame unknown({Summon(Slot(0, 1, 0), Card(0, 2, 0, 100), SummonMethod::kSpecial), Halt()});
-  check(runtime.Run(unknown).status == Status::kUnsupported && state.zones == before, "unimplemented semantics fail explicitly");
+  check(runtime.Run(unknown).status == Status::kFault && state.zones == before, "unbound state layout fails without mutation");
   Frame history_read({History(V(0), HistoryField::kCount), History(V(1), HistoryField::kKind, Imm(0)), Halt()});
   check(runtime.Run(history_read).status == Status::kHalted && ImmediateValue(history_read.machine.regs.value[0]) == SignedWord(runtime.history.size()), "numeric event history access");
   // Register a replacement body that redirects one staged movement.

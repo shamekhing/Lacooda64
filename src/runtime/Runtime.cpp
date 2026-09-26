@@ -238,6 +238,24 @@ Result Runtime::Execute(Frame& f, Word budget) {
         }
         control(ControlReg::kResultSuccess, Imm(valid));
         break;
+      case Opcode::kSummon:
+      case Opcode::kPosition:
+      case Opcode::kEquip:
+      case Opcode::kCounter:
+      case Opcode::kControl:
+      case Opcode::kNegate:
+      case Opcode::kRestrict:
+        control(ControlReg::kResultCount, Imm(0));
+        valid = ApplyStateOperation(f, i);
+        control(ControlReg::kResultSuccess, Imm(valid));
+        break;
+      case Opcode::kChain: {
+        const auto applied = RunChain(f, i, budget - steps);
+        steps += applied.steps;
+        if (applied.status != Status::kHalted) return {applied.status, f.pc, steps, applied.message};
+        control(ControlReg::kResultSuccess, Imm(1));
+        break;
+      }
       case Opcode::kHistory:
         if (sub == Sub(HistoryField::kCount))
           valid = write(d, Imm(static_cast<SignedWord>(history.size())));
@@ -256,7 +274,7 @@ Result Runtime::Execute(Frame& f, Word budget) {
         Instruction planned = (*f.program)[Word(ImmediateValue(s))];
         const auto action = OpcodeOf(Operation(planned));
         // Only one concrete state mutation is staged, never a hidden program.
-        if (action != Opcode::kMove && action != Opcode::kStore && action != Opcode::kDamage && action != Opcode::kGainLp && action != Opcode::kPayLp) return {Status::kUnsupported, f.pc, steps, "instruction cannot be staged"};
+        if (action != Opcode::kMove && action != Opcode::kStore && action != Opcode::kDamage && action != Opcode::kGainLp && action != Opcode::kPayLp && action != Opcode::kSummon && action != Opcode::kPosition && action != Opcode::kEquip && action != Opcode::kCounter && action != Opcode::kControl && action != Opcode::kNegate && action != Opcode::kRestrict) return {Status::kUnsupported, f.pc, steps, "instruction cannot be staged"};
         if (action == Opcode::kStore && IsControl(Dst(planned))) return {Status::kUnsupported, f.pc, steps, "staged STORE requires an attribute destination"};
         if (IsAddressRegister(Dst(planned))) valid = address(Dst(planned), planned[1]);
         if (IsRegister(Src0(planned))) valid = valid && read(Src0(planned), planned[2]);
@@ -378,5 +396,5 @@ std::vector<Frame> Runtime::TakeReady() {
   ready_.clear();
   return ready;
 }
-Runtime::Runtime(StateAccess& state, std::mt19937& rng) : state_(state), rng_(rng) {}
+Runtime::Runtime(StateAccess& state, std::mt19937& rng, StateLayout layout) : state_(state), rng_(rng), layout_(layout) {}
 }  // namespace openjoey::lacooda64::runtime

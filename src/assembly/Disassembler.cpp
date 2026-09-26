@@ -85,10 +85,13 @@ std::string InstructionText(const Instruction& i) {
       args = Name(op == Opcode::kPosition ? "PositionOp" : "NegateOp", sub) + ", " + d;
       break;
     case Opcode::kEquip:
-    case Opcode::kCounter:
     case Opcode::kControl:
     case Opcode::kRestrict:
       args = Name(op == Opcode::kEquip ? "EquipOp" : op == Opcode::kCounter ? "CounterOp" : op == Opcode::kControl ? "ControlOp" : "RestrictOp", sub) + ", " + d + ", " + s;
+      break;
+    case Opcode::kCounter:
+      args = Name("CounterOp", sub) + ", " + d + ", " + s;
+      if (!IsNone(Src1(i))) args += ", " + t;
       break;
     case Opcode::kRandom:
       args = Name("RandomKind", sub) + ", " + d + ", " + s;

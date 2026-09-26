@@ -4,6 +4,8 @@
 
 #include "Numeric.hpp"
 namespace openjoey::lacooda64::runtime {
+bool ModifiedState::Create(Word prototype, Address destination, Address& created) { return base_.Create(prototype, destination, created); }
+bool ModifiedState::Exchange(Address first, Address second, Address& first_moved, Address& second_moved) { return base_.Exchange(first, second, first_moved, second_moved); }
 Word Modifiers::Add(Address field, ModifierOp operation, SignedWord value) {
   if (next_ > Word(kImmediateMax)) throw std::overflow_error("modifier ID exhausted");
   auto id = next_++;
